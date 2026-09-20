@@ -1,0 +1,142 @@
+[
+  {
+    "id": "CMP-001",
+    "complaint": "I was charged twice for my monthly premium subscription on September 15th. My bank statement shows two identical deductions of $29.99 for the same account.",
+    "expected_category": "billing",
+    "category_reason": "Recognized financial activity involving a duplicate subscription charge with undisputed merchant identity.",
+    "reply_requirements": "Empathetically acknowledge duplicate subscription charge under billing; do not promise an immediate refund or credit reversal; do not claim billing department has opened a review.",
+    "results": {
+      "classification_correct": null,
+      "reply_relevant": null,
+      "invented_policy": null,
+      "professional_tone": null,
+      "notable_failure": null
+    }
+  },
+  {
+    "id": "CMP-002",
+    "complaint": "My monthly personal loan EMI of $420 was auto-debited from my checking account two days prior to the agreed schedule date of the 1st, triggering an unexpected overdraft penalty.",
+    "expected_category": "loan",
+    "category_reason": "Concerns loan account repayment scheduling, auto-debit timing, and EMI deduction discrepancies.",
+    "reply_requirements": "Acknowledge the personal loan EMI deduction timing concern under loan; avoid promising overdraft fee reimbursement or interest waivers; do not claim loan officers are reviewing it.",
+    "results": {
+      "classification_correct": null,
+      "reply_relevant": null,
+      "invented_policy": null,
+      "professional_tone": null,
+      "notable_failure": null
+    }
+  },
+  {
+    "id": "CMP-003",
+    "complaint": "I received an unprompted SMS containing an OTP for a $500 wire transfer that I never initiated or authorized. Someone is actively trying to breach my account.",
+    "expected_category": "fraud",
+    "category_reason": "Explicit report of an unauthorized transaction attempt, security compromise, and unsolicited authentication OTP.",
+    "reply_requirements": "Urgently acknowledge the unauthorized security report under fraud; do not claim the account has been frozen or locked; do not claim fraud investigators have taken action.",
+    "results": {
+      "classification_correct": null,
+      "reply_relevant": null,
+      "invented_policy": null,
+      "professional_tone": null,
+      "notable_failure": null
+    }
+  },
+  {
+    "id": "CMP-004",
+    "complaint": "Every time I open the mobile app and authenticate using Face ID biometric login, the screen flickers once and crashes back to the iOS home screen.",
+    "expected_category": "app_issue",
+    "category_reason": "Technical software defect, biometric authentication failure, and mobile application crash.",
+    "reply_requirements": "Acknowledge mobile app crashing during biometric login under app_issue; avoid promising an immediate app patch release or specific IT resolution time.",
+    "results": {
+      "classification_correct": null,
+      "reply_relevant": null,
+      "invented_policy": null,
+      "professional_tone": null,
+      "notable_failure": null
+    }
+  },
+  {
+    "id": "CMP-005",
+    "complaint": "I cancelled my auto-renewing membership plan last month and received confirmation email #88412, yet your system billed me another $45.00 this morning.",
+    "expected_category": "billing",
+    "category_reason": "Disputed post-cancellation recurring charge on a recognized customer account.",
+    "reply_requirements": "Acknowledge disputed charge following cancellation under billing; do not promise a refund or claim subscription records have been modified.",
+    "results": {
+      "classification_correct": null,
+      "reply_relevant": null,
+      "invented_policy": null,
+      "professional_tone": null,
+      "notable_failure": null
+    }
+  },
+  {
+    "id": "CMP-006",
+    "complaint": "I submitted all requested proof of income documents for my mortgage refinancing application over seven weeks ago, but the status portal is still stuck on pending initial review.",
+    "expected_category": "loan",
+    "category_reason": "Concerns application processing delays and evaluation status for a home refinancing loan.",
+    "reply_requirements": "Acknowledge refinancing application delay under loan; do not promise loan approval or expedited underwriting; do not claim underwriting team has the file.",
+    "results": {
+      "classification_correct": null,
+      "reply_relevant": null,
+      "invented_policy": null,
+      "professional_tone": null,
+      "notable_failure": null
+    }
+  },
+  {
+    "id": "CMP-007",
+    "complaint": "Someone changed my online banking password and updated the two-factor recovery email to a suspicious domain at 3 AM without my knowledge or consent.",
+    "expected_category": "fraud",
+    "category_reason": "Explicit account takeover, unauthorized credential tampering, and security compromise without customer authorization.",
+    "reply_requirements": "Acknowledge the serious account takeover and credential compromise report under fraud; do not claim credentials have been reset or restored.",
+    "results": {
+      "classification_correct": null,
+      "reply_relevant": null,
+      "invented_policy": null,
+      "professional_tone": null,
+      "notable_failure": null
+    }
+  },
+  {
+    "id": "CMP-008",
+    "complaint": "When I click on the statement history tab in the customer portal, the page displays an endless loading spinner and eventually crashes with client error code ERR_HTTP2_PROTOCOL_ERROR.",
+    "expected_category": "app_issue",
+    "category_reason": "Software defect, user interface freeze, and client-side web application error code.",
+    "reply_requirements": "Acknowledge technical portal loading error under app_issue; do not claim technical support has repaired the server or database.",
+    "results": {
+      "classification_correct": null,
+      "reply_relevant": null,
+      "invented_policy": null,
+      "professional_tone": null,
+      "notable_failure": null
+    }
+  },
+  {
+    "id": "CMP-009",
+    "complaint": "The mobile app completely froze while I was submitting my electricity bill payment; money was deducted from my checking account, but the utility provider still shows the bill as unpaid.",
+    "expected_category": "app_issue",
+    "category_reason": "Technical application freeze during transaction execution resulting in state desynchronization (root cause is app failure).",
+    "reply_requirements": "Acknowledge technical app freeze and payment state issue under app_issue; do not promise payment clearing or transaction reversal.",
+    "results": {
+      "classification_correct": null,
+      "reply_relevant": null,
+      "invented_policy": null,
+      "professional_tone": null,
+      "notable_failure": null
+    }
+  },
+  {
+    "id": "CMP-010",
+    "complaint": "I was charged a $35 late payment fee even though I scheduled the transfer prior to the 5 PM Friday cutoff, because the bank holiday delayed clearing until Tuesday morning.",
+    "expected_category": "billing",
+    "category_reason": "Recognized financial fee dispute involving transaction clearing lag across a bank holiday.",
+    "reply_requirements": "Acknowledge late payment fee dispute under billing; do not guarantee fee reversal or policy waiver.",
+    "results": {
+      "classification_correct": null,
+      "reply_relevant": null,
+      "invented_policy": null,
+      "professional_tone": null,
+      "notable_failure": null
+    }
+  }
+]
