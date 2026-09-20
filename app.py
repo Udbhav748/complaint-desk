@@ -38,35 +38,6 @@ def init_session_state() -> None:
     """Initialize persistent conversation state in Streamlit."""
     if "messages" not in st.session_state:
         st.session_state.messages: List[Dict[str, Any]] = []
-        # Support demo query parameter for visual QA and verification
-        demo_mode = st.query_params.get("demo", "")
-        if demo_mode == "single":
-            st.session_state.messages = [
-                {
-                    "complaint": "I was charged twice for my subscription fee this month. Transaction ID #98234 shows two deductions of $29.99 on September 15th.",
-                    "category": "billing",
-                    "reply": "Thank you for contacting us regarding the duplicate charge on your account. We have logged this under our billing review team and are verifying transaction #98234. Any erroneous charges will be reversed to your original payment method within 3-5 business days.",
-                    "timestamp": "10:15 AM",
-                    "model": "gpt-4o-mini",
-                }
-            ]
-        elif demo_mode == "multi":
-            st.session_state.messages = [
-                {
-                    "complaint": "I was charged twice for my subscription fee this month. Transaction ID #98234 shows two deductions of $29.99 on September 15th.",
-                    "category": "billing",
-                    "reply": "Thank you for contacting us regarding the duplicate charge on your account. We have logged this under our billing review team and are verifying transaction #98234. Any erroneous charges will be reversed to your original payment method within 3-5 business days.",
-                    "timestamp": "10:15 AM",
-                    "model": "gpt-4o-mini",
-                },
-                {
-                    "complaint": "The mobile application keeps crashing unexpectedly whenever I attempt to transfer funds on iOS 18.",
-                    "category": "app_issue",
-                    "reply": "Thank you for reporting this issue with the mobile application crashing during fund transfers on iOS 18. Our engineering team has been notified and is preparing an update to address device compatibility.",
-                    "timestamp": "10:22 AM",
-                    "model": "gpt-4o-mini",
-                },
-            ]
 
 
 def inject_custom_styles() -> None:
