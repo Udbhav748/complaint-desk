@@ -1,0 +1,186 @@
+"""Input sanitization and category validation module for Complaint Desk.
+
+Provides deterministic validation for user complaint text and strict
+whitelisting for LLM classification output before invoking downstream chains.
+"""
+
+from dataclasses import dataclass
+import re
+from typing import Optional
+from src.config import ALLOWED_CATEGORIES
+
+# Length boundaries for complaint intake
+MIN_COMPLAINT_LENGTH: int = 5
+MAX_COMPLAINT_LENGTH: int = 4000
+
+# Error taxonomy constants
+ERR_EMPTY_INPUT = "empty_input"
+ERR_INPUT_TOO_SHORT = "input_too_short"
+ERR_INPUT_TOO_LONG = "input_too_long"
+ERR_INVALID_INPUT = "invalid_input"
+ERR_INVALID_CATEGORY = "invalid_category"
+
+
+@dataclass(frozen=True)
+class ValidationResult:
+    """Structured result returned by validation functions."""
+
+    success: bool
+    value: Optional[str] = None
+    error_type: Optional[str] = None
+    message: Optional[str] = None
+    diagnostic_info: Optional[str] = None
+
+    @classmethod
+    def ok(cls, value: str) -> "ValidationResult":
+        """Construct a successful validation result."""
+        return cls(success=True, value=value)
+
+    @classmethod
+    def fail(
+        cls, error_type: str, message: str, diagnostic_info: Optional[str] = None
+    ) -> "ValidationResult":
+        """Construct a failed validation result."""
+        return cls(
+            success=False,
+            error_type=error_type,
+            message=message,
+            diagnostic_info=diagnostic_info,
+        )
+
+
+def validate_complaint(
+    text: object,
+    min_length: int = MIN_COMPLAINT_LENGTH,
+    max_length: int = MAX_COMPLAINT_LENGTH,
+) -> ValidationResult:
+    """Validate and sanitize user complaint input.
+
+    Rejects null/non-string values, empty/whitespace strings, and inputs
+    outside the permitted length boundaries. Strips leading/trailing whitespace
+    while preserving internal punctuation, currency symbols, and multilingual text.
+
+    Args:
+        text: The raw user input.
+        min_length: Minimum character threshold (default: 5).
+        max_length: Maximum character threshold (default: 4000).
+
+    Returns:
+        ValidationResult with sanitized complaint text on success, or error details on failure.
+    """
+    if text is None or not isinstance(text, str):
+        return ValidationResult.fail(
+            error_type=ERR_INVALID_INPUT,
+            message="Complaint must be a valid text string.",
+            diagnostic_info=f"Received non-string type: {type(text).__name__}",
+        )
+
+    # Check for problematic non-printable control characters (excluding standard whitespace \t, \n, \r)
+    if re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", text):
+        return ValidationResult.fail(
+            error_type=ERR_INVALID_INPUT,
+            message="Complaint contains invalid non-printable control characters.",
+            diagnostic_info="Detected forbidden control characters in text input.",
+        )
+
+    cleaned = text.strip()
+
+    if not cleaned:
+        return ValidationResult.fail(
+            error_type=ERR_EMPTY_INPUT,
+            message="Please enter a customer complaint before submitting.",
+            diagnostic_info="Input is empty or consists solely of whitespace.",
+        )
+
+    char_count = len(cleaned)
+
+    if char_count < min_length:
+        return ValidationResult.fail(
+            error_type=ERR_INPUT_TOO_SHORT,
+            message=(
+                f"Complaint is too short ({char_count} characters). "
+                f"Please provide at least {min_length} characters describing the issue."
+            ),
+            diagnostic_info=f"Length {char_count} is below threshold of {min_length}.",
+        )
+
+    if char_count > max_length:
+        return ValidationResult.fail(
+            error_type=ERR_INPUT_TOO_LONG,
+            message=(
+                f"Complaint exceeds the maximum allowed length of {max_length} characters "
+                f"(current: {char_count}). Please summarize the issue."
+            ),
+            diagnostic_info=f"Length {char_count} exceeds maximum of {max_length}.",
+        )
+
+    return ValidationResult.ok(cleaned)
+
+
+def normalize_category(raw_output: object) -> str:
+    """Normalize raw LLM classification output for whitelisting.
+
+    Performs safe cleanup of formatting artifacts without mutating the underlying token:
+    - Strips whitespace
+    - Lowercases text
+    - Strips optional 'Category:' / 'Classification:' / 'Output:' prefix
+    - Strips markdown formatting (backticks, asterisks) and quotes
+    - Preserves internal underscores ('_') required for categories like 'app_issue'
+    - Strips trailing punctuation (periods, semicolons, colons)
+
+    Args:
+        raw_output: The raw response string from Chain 1.
+
+    Returns:
+        Cleaned lowercase string candidate.
+    """
+    if raw_output is None or not isinstance(raw_output, str):
+        return ""
+
+    cleaned = raw_output.strip()
+
+    # Strip optional "Category:" / "Classification:" / "Output:" prefix if generated by the model
+    if ":" in cleaned:
+        prefix, sep, rest = cleaned.partition(":")
+        if prefix.strip().lower() in ("category", "classification", "output"):
+            cleaned = rest.strip()
+
+    # Remove quotes and markdown formatting (backticks, asterisks)
+    # NOTE: Underscore '_' is explicitly preserved to support 'app_issue'
+    cleaned = re.sub(r"[`*\"']", "", cleaned).strip()
+
+    # Lowercase and remove trailing punctuation
+    cleaned = cleaned.lower().rstrip(".,;!?:")
+
+    return cleaned
+
+
+def validate_category(raw_output: object) -> ValidationResult:
+    """Validate that the classification output strictly matches one of the allowed categories.
+
+    Normalizes the raw text and checks exact membership against ALLOWED_CATEGORIES.
+    If the category is invalid or out-of-spec, fails safely so the caller can halt
+    before invoking Chain 2.
+
+    Args:
+        raw_output: The raw output returned by the classification chain.
+
+    Returns:
+        ValidationResult with validated category on success, or structured failure details.
+    """
+    normalized = normalize_category(raw_output)
+
+    if normalized in ALLOWED_CATEGORIES:
+        return ValidationResult.ok(normalized)
+
+    # Sanitize raw string for safe diagnostic reporting (truncate to 100 chars, escape whitespace)
+    safe_raw = repr(str(raw_output)[:100]) if raw_output is not None else "None"
+
+    return ValidationResult.fail(
+        error_type=ERR_INVALID_CATEGORY,
+        message=(
+            "The complaint could not be classified into a supported category. "
+            f"Valid categories are: {', '.join(ALLOWED_CATEGORIES)}."
+        ),
+        diagnostic_info=f"Raw output {safe_raw} normalized to '{normalized}', which is not in ALLOWED_CATEGORIES.",
+    )
