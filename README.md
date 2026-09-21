@@ -4,6 +4,19 @@ A deterministic two-chain LangChain application for customer complaint classific
 
 ---
 
+## Project Status
+
+**CURRENT:**
+- The architecture is fully built and **tested offline** (via `FakeListChatModel`).
+- The application is **configured for `gpt-4o-mini`**.
+- **No live GPT inference** is currently performed.
+- Zero code changes are required when an API key becomes available (managed entirely via `.env`).
+
+**FUTURE:**
+- Genuine `gpt-4o-mini` evaluation and benchmark scoring will occur once API credentials are provided.
+- The frozen 10-complaint benchmark will be empirically tested against actual live model responses.
+
+---
 ## Overview
 
 **Complaint Desk** is an automated customer intake application that accepts customer complaints, classifies them into one of four supported categories (`billing`, `loan`, `fraud`, or `app_issue`), and generates an empathetic, professional customer intake acknowledgement.
@@ -416,7 +429,7 @@ The project is structured for clean deployment to **Streamlit Community Cloud** 
    ```
 5. **Cold Start Verification**: Confirm the deployed app loads without errors, presents the empty-state interface, and handles missing keys gracefully.
 
-> **Deployment Status**: Current status: deployment preparation complete; live deployment has not yet been performed.
+> **Deployment Status**: Current status: deployment preparation complete; live deployment has not yet been performed. If the application is deployed before an API key is available, it may be used only to verify page availability, UI rendering, configuration state, and missing-key handling. It must not be considered a functional live AI demo. Live GPT-4o-mini inference requires an OpenAI API key.
 
 ---
 
