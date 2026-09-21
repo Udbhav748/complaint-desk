@@ -27,6 +27,7 @@ def get_chat_model(
     model_name: str = DEFAULT_MODEL_NAME,
     temperature: float = 0.0,
     max_tokens: Optional[int] = None,
+    provider: str = "openai",
 ) -> BaseChatModel:
     """Factory function creating a configured LangChain Chat model instance.
 
@@ -34,22 +35,33 @@ def get_chat_model(
     In Activity B, this factory can instantiate ChatOllama without altering the downstream chains.
 
     Args:
-        api_key: OpenAI API secret key. If None, ChatOpenAI attempts to read from env.
-        model_name: Model identifier (e.g., 'gpt-4o-mini').
+        api_key: Secret key. If None, ChatOpenAI attempts to read from env.
+        model_name: Model identifier.
         temperature: Sampling temperature controlling output variance.
         max_tokens: Maximum tokens permitted in generation output.
+        provider: 'openai' or 'groq'. Adjusts base_url for Groq's OpenAI-compatible endpoint.
 
     Returns:
         Configured BaseChatModel instance.
     """
-    return ChatOpenAI(
-        api_key=api_key or None,
-        model=model_name,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        timeout=30.0,
-        max_retries=2,
-    )
+    kwargs = {
+        "api_key": api_key or None,
+        "model": model_name,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "timeout": 30.0,
+        "max_retries": 2,
+    }
+
+    if provider == "groq":
+        kwargs["base_url"] = "https://api.groq.com/openai/v1"
+        # Increase max_tokens for Groq reasoning models to ensure the reasoning phase
+        # completes successfully. Using 256 with low reasoning effort is sufficient.
+        if kwargs["max_tokens"] is not None and kwargs["max_tokens"] < 256:
+            kwargs["max_tokens"] = 256
+        kwargs["reasoning_effort"] = "low"
+
+    return ChatOpenAI(**kwargs)
 
 
 def build_classification_chain(llm: BaseChatModel) -> Runnable:
@@ -95,18 +107,27 @@ def create_chains(
     """
     cfg = config if config is not None else AppConfig.from_env()
 
+    if cfg.llm_provider == "groq":
+        active_api_key = cfg.groq_api_key if cfg.has_valid_api_key else None
+        model_name = cfg.groq_model_name
+    else:
+        active_api_key = cfg.openai_api_key if cfg.has_valid_api_key else None
+        model_name = cfg.model_name
+
     classification_llm = get_chat_model(
-        api_key=cfg.openai_api_key if cfg.has_valid_api_key else None,
-        model_name=cfg.model_name,
+        api_key=active_api_key,
+        model_name=model_name,
         temperature=cfg.temperature_classification,
         max_tokens=cfg.max_classification_tokens,
+        provider=cfg.llm_provider,
     )
 
     reply_llm = get_chat_model(
-        api_key=cfg.openai_api_key if cfg.has_valid_api_key else None,
-        model_name=cfg.model_name,
+        api_key=active_api_key,
+        model_name=model_name,
         temperature=cfg.temperature_reply,
         max_tokens=cfg.max_reply_tokens,
+        provider=cfg.llm_provider,
     )
 
     classification_chain = build_classification_chain(classification_llm)

@@ -223,8 +223,11 @@ def render_sidebar(config: AppConfig) -> None:
             f"background: rgba(128, 128, 128, 0.03); font-size: 0.81rem; "
             f"display: flex; flex-direction: column; gap: 7px;'>"
             f"<div style='display: flex; justify-content: space-between; align-items: center;'>"
+            f"<span style='color: #6B7280; font-weight: 500;'>Provider</span>"
+            f"<span style='font-weight: 600; font-size: 0.78rem; color: #374151;'>{escape_html(config.llm_provider.title())}</span></div>"
+            f"<div style='display: flex; justify-content: space-between; align-items: center;'>"
             f"<span style='color: #6B7280; font-weight: 500;'>Model</span>"
-            f"<code style='font-size: 0.76rem;'>{escape_html(config.model_name)}</code></div>"
+            f"<code style='font-size: 0.76rem;'>{escape_html(config.active_model_name)}</code></div>"
             f"<div style='display: flex; justify-content: space-between; align-items: center;'>"
             f"<span style='color: #6B7280; font-weight: 500;'>Classification temperature</span>"
             f"<code style='font-size: 0.76rem;'>{escape_html(config.temperature_classification)}</code></div>"
@@ -422,7 +425,8 @@ def render_conversation(messages: List[Dict[str, Any]], config: AppConfig) -> No
 
           <div style="display: flex; align-items: center; gap: 16px; font-size: 0.73rem; color: #6B7280; border-top: 1px solid rgba(128, 128, 128, 0.08); padding-top: 0.55rem;">
             <div><span style="color: #9CA3AF; font-weight: 500;">Category:</span> <span style="font-weight: 600; color: var(--text-color, #4B5563);">{escape_html(cat)}</span></div>
-            <div><span style="color: #9CA3AF; font-weight: 500;">Model:</span> <code style="font-size: 0.72rem;">{escape_html(item.get('model', config.model_name))}</code></div>
+            <div><span style="color: #9CA3AF; font-weight: 500;">Provider:</span> <span style="font-weight: 600; color: var(--text-color, #4B5563);">{escape_html(item.get('provider', config.llm_provider).title())}</span></div>
+            <div><span style="color: #9CA3AF; font-weight: 500;">Model:</span> <code style="font-size: 0.72rem;">{escape_html(item.get('model', config.active_model_name))}</code></div>
           </div>
         </div>
         """
@@ -539,7 +543,8 @@ def process_submission(user_input: str, config: AppConfig) -> None:
             "category": verified_category,
             "reply": reply.strip(),
             "timestamp": now_str,
-            "model": config.model_name,
+            "provider": config.llm_provider,
+            "model": config.active_model_name,
         }
     )
     st.rerun()

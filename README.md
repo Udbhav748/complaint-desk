@@ -242,14 +242,34 @@ Copy `.env.example` to create a local `.env` file:
 cp .env.example .env
 ```
 
+### Supported Providers
+
+The application orchestrates models via `ChatOpenAI` and supports two configuration pathways:
+
+**OpenAI:**
+- Uses the proprietary `gpt-4o-mini` model.
+- Requires OpenAI API access (`OPENAI_API_KEY`).
+
+**Groq:**
+- Uses `openai/gpt-oss-20b`.
+- Requires Groq API access (`GROQ_API_KEY`).
+- Accessed seamlessly through Groq's OpenAI-compatible endpoint (`https://api.groq.com/openai/v1`).
+
+> **IMPORTANT**: Groq does not provide the proprietary gpt-4o-mini model. The Groq configuration uses OpenAI's open-weight GPT-OSS 20B model served through Groq. The two models are not identical. The same LangChain chains and prompts operate deterministically with either provider.
+
 ### Supported Parameters
 
 | Variable | Default | Description |
 |---|---|---|
-| `OPENAI_API_KEY` | *(None)* | OpenAI API secret key (required for live inference). |
+| `LLM_PROVIDER` | `openai` | Determines the active backend (`openai` or `groq`). |
+| `GROQ_API_KEY` | *(None)* | Groq API secret key. |
+| `GROQ_MODEL_NAME` | `openai/gpt-oss-20b` | Target Groq model identifier. |
+| `OPENAI_API_KEY` | *(None)* | OpenAI API secret key. |
 | `OPENAI_MODEL_NAME` | `gpt-4o-mini` | Target OpenAI chat model identifier. |
 | `TEMPERATURE_CLASSIFICATION` | `0.0` | Sampling temperature for the classification chain. |
 | `TEMPERATURE_REPLY` | `0.2` | Sampling temperature for the reply generation chain. |
+
+> **Activity A Disclosure:** The project originally uses OpenAI / gpt-4o-mini for Activity A. The current live configuration may use Groq / openai/gpt-oss-20b. This distinction is explicit to prevent claiming that benchmark results obtained from GPT-OSS were produced by GPT-4o-mini.
 
 > **Security Assurance**: The `AppConfig` class implements a custom `__repr__` method that automatically masks API keys (`sk-...1234` or `<NOT CONFIGURED>`), preventing accidental exposure in console outputs or application logs.
 
