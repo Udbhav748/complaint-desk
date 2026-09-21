@@ -69,7 +69,7 @@ The application strictly separates responsibilities:
 ## Application Flow
 
 ### Step 1 — Complaint Input
-The user inputs customer complaint text via the Streamlit chat input interface (`st.chat_input("Paste a customer complaint...")`).
+The user inputs customer complaint text via the Streamlit chat input interface (`st.chat_input("Describe the customer's complaint...")`).
 
 ### Step 2 — Input Validation
 `validate_complaint()` inspects the input:
@@ -77,7 +77,7 @@ The user inputs customer complaint text via the Streamlit chat input interface (
 - Rejects unprintable control characters (`\x00-\x08`, etc.).
 - Trims surrounding whitespace.
 - Enforces the length threshold: minimum 5 characters, maximum 4,000 characters.
-- If validation fails, the UI displays an actionable warning (`st.warning`), logs sanitized diagnostics, and halts execution before any LLM is instantiated.
+- If validation fails, the UI displays an error banner, logs sanitized diagnostics, and halts execution before any LLM is instantiated.
 
 ### Step 3 — Classification Chain (Chain 1)
 If the input is valid, the complaint is passed to Chain 1:
@@ -294,13 +294,13 @@ streamlit run app.py
 The web interface will open in your default browser at `http://localhost:8501`.
 
 ### Interface Elements
-- **Main View**: Title, application description, persistent chat conversation view, and chat input box (`Paste a customer complaint...`).
+- **Main View**: Application header, persistent complaint conversation view, and chat input box (`Describe the customer's complaint...`).
 - **Sidebar**:
   - Configured model identifier (`gpt-4o-mini`).
   - Classification and reply temperature values (`0.0`, `0.2`).
-  - Real-time API Key status indicator (`🟢 Configured` or `🔴 Missing / Incomplete`).
+  - Real-time API key status indicator (`● API Configured` or `● Configuration Required`).
   - Supported category guide.
-  - **"Clear Conversation"** button to reset session state.
+  - **"Clear session"** button to reset conversation history.
 
 ---
 

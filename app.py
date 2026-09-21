@@ -5,6 +5,7 @@ session state conversation persistence, and clean error handling.
 FWC AI/ML Training Module 8 Activity A.
 """
 
+import html
 import logging
 from datetime import datetime
 from typing import List, Dict, Any
@@ -13,6 +14,10 @@ import streamlit as st
 from src.config import AppConfig, ALLOWED_CATEGORIES
 from src.chains import create_chains
 from src.validation import validate_complaint, validate_category
+
+def escape_html(value: object) -> str:
+    """Safely escape any dynamic value for HTML interpolation."""
+    return html.escape(str(value), quote=True)
 
 # Configure application logging (logs diagnostics locally without exposing secrets)
 logging.basicConfig(
@@ -219,21 +224,21 @@ def render_sidebar(config: AppConfig) -> None:
             f"display: flex; flex-direction: column; gap: 7px;'>"
             f"<div style='display: flex; justify-content: space-between; align-items: center;'>"
             f"<span style='color: #6B7280; font-weight: 500;'>Model</span>"
-            f"<code style='font-size: 0.76rem;'>{config.model_name}</code></div>"
+            f"<code style='font-size: 0.76rem;'>{escape_html(config.model_name)}</code></div>"
             f"<div style='display: flex; justify-content: space-between; align-items: center;'>"
             f"<span style='color: #6B7280; font-weight: 500;'>Classification temperature</span>"
-            f"<code style='font-size: 0.76rem;'>{config.temperature_classification}</code></div>"
+            f"<code style='font-size: 0.76rem;'>{escape_html(config.temperature_classification)}</code></div>"
             f"<div style='display: flex; justify-content: space-between; align-items: center;'>"
             f"<span style='color: #6B7280; font-weight: 500;'>Reply temperature</span>"
-            f"<code style='font-size: 0.76rem;'>{config.temperature_reply}</code></div>"
+            f"<code style='font-size: 0.76rem;'>{escape_html(config.temperature_reply)}</code></div>"
             f"<div style='display: flex; justify-content: space-between; align-items: center;'>"
             f"<span style='color: #6B7280; font-weight: 500;'>API status</span>"
-            f"<span style='font-weight: 600; font-size: 0.78rem; color: {api_badge_color};'>● {api_badge_label}</span></div>"
+            f"<span style='font-weight: 600; font-size: 0.78rem; color: {escape_html(api_badge_color)};'>● {escape_html(api_badge_label)}</span></div>"
             f"</div>"
         )
         st.markdown(config_html, unsafe_allow_html=True)
 
-        with st.expander("ℹ️ Hyperparameter Rationale", expanded=False):
+        with st.expander("ⓘ Hyperparameter Rationale", expanded=False):
             st.caption(
                 "• **T = 0.0 (Classification):** Minimizes sampling entropy to enforce strict, deterministic argmax category assignment.\n\n"
                 "• **T = 0.2 (Reply Generation):** Low-temperature sampling provides natural acknowledgment phrasing while preventing hallucinated promises or routing claims."
@@ -279,10 +284,10 @@ def render_error_banner(heading: str, explanation: str) -> None:
       </div>
       <div>
         <div style="font-weight: 700; font-size: 0.86rem; color: #991B1B; margin-bottom: 2px;">
-          {heading}
+          {escape_html(heading)}
         </div>
         <div style="font-size: 0.82rem; color: #B91C1C; line-height: 1.45;">
-          {explanation}
+          {escape_html(explanation)}
         </div>
       </div>
     </div>
@@ -357,7 +362,7 @@ def render_conversation(messages: List[Dict[str, Any]], config: AppConfig) -> No
         # Phase 10: Customer message card
         timestamp = item.get("timestamp", "")
         time_badge = (
-            f"<span style='font-size: 0.74rem; color: #9CA3AF; font-weight: 400;'>• {timestamp}</span>"
+            f"<span style='font-size: 0.74rem; color: #9CA3AF; font-weight: 400;'>• {escape_html(timestamp)}</span>"
             if timestamp
             else ""
         )
@@ -374,7 +379,7 @@ def render_conversation(messages: List[Dict[str, Any]], config: AppConfig) -> No
             {time_badge}
           </div>
           <div style="font-size: 0.93rem; line-height: 1.55; color: var(--text-color, #374151); word-wrap: break-word;">
-            {item["complaint"]}
+            {escape_html(item["complaint"])}
           </div>
         </div>
         """
@@ -412,12 +417,12 @@ def render_conversation(messages: List[Dict[str, Any]], config: AppConfig) -> No
           </div>
 
           <div style="font-size: 0.93rem; line-height: 1.6; color: var(--text-color, #374151); word-wrap: break-word; margin-bottom: 0.85rem;">
-            {item["reply"]}
+            {escape_html(item["reply"])}
           </div>
 
           <div style="display: flex; align-items: center; gap: 16px; font-size: 0.73rem; color: #6B7280; border-top: 1px solid rgba(128, 128, 128, 0.08); padding-top: 0.55rem;">
-            <div><span style="color: #9CA3AF; font-weight: 500;">Category:</span> <span style="font-weight: 600; color: var(--text-color, #4B5563);">{cat}</span></div>
-            <div><span style="color: #9CA3AF; font-weight: 500;">Model:</span> <code style="font-size: 0.72rem;">{item.get('model', config.model_name)}</code></div>
+            <div><span style="color: #9CA3AF; font-weight: 500;">Category:</span> <span style="font-weight: 600; color: var(--text-color, #4B5563);">{escape_html(cat)}</span></div>
+            <div><span style="color: #9CA3AF; font-weight: 500;">Model:</span> <code style="font-size: 0.72rem;">{escape_html(item.get('model', config.model_name))}</code></div>
           </div>
         </div>
         """
@@ -527,7 +532,7 @@ def process_submission(user_input: str, config: AppConfig) -> None:
     status_placeholder.empty()
 
     # Step 5: Persist interaction in session state
-    now_str = datetime.now().strftime("%I:%M %p")
+    now_str = datetime.now().astimezone().strftime("%I:%M %p %Z")
     st.session_state.messages.append(
         {
             "complaint": sanitized_complaint,
