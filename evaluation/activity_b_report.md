@@ -80,12 +80,43 @@ capacity to hit cloud-grade latency.
   logging, no data-processing agreement needed, no cross-border transfer question. This is the
   meaningfully stronger posture for a regulated financial institution.
 
+## Follow-up: Does the Hardened Prompt Fix It on Mistral Too?
+
+The findings above used the handout's *bare* reference prompt on both providers, specifically to
+isolate the prompt's effect from the model's effect. A natural follow-up: if Mistral gets Activity A's
+actual hardened prompt (`src/prompts.py` — few-shot examples, disambiguation rule, explicit forbidden-phrase
+guardrails) instead of the bare one, does it match Groq's behavior?
+
+Re-ran the same 10 complaints, same `mistral` model, swapping in the hardened prompt
+(`evaluation/run_eval_activity_b_hardened.py`):
+
+| Metric | Bare prompt | Hardened prompt |
+|---|---|---|
+| Classification accuracy | 8/10 | 8/10 (same score, different misses — fixed CMP-002, newly missed CMP-010) |
+| Replies with guardrail-violating phrases | Several (forwarding/refund/investigation claims) | **0/10 — fully clean** |
+| Avg. total latency | ~27.0 s | ~34.1 s (longer prompt → more tokens to process) |
+
+**The guardrails work on a local model too** — the forbidden-phrase instructions and few-shot structure
+eliminated every unsafe claim (false refunds, false investigations, false routing) in this run, matching
+Groq's clean output. That part of Activity A's prompt engineering is portable across providers, not an
+artifact of one model's instruction-following.
+
+**Classification accuracy did not improve, and the error pattern shifted rather than shrank**: Mistral
+still missed 2/10 cases, but a different 2. It correctly caught `loan` on CMP-002 after the fix (the EMI
+auto-debit case) but now missed `billing` on CMP-010 (a late-fee dispute), and still missed `loan` on
+CMP-006 (mortgage refinancing status) — both times defaulting to `app_issue` on complaints that mention a
+stuck "status portal" or "payment," suggesting a smaller model's category boundaries are less robust to
+the same few-shot prompt that gets Groq's larger model to 10/10. This is a **model-capability gap**, not a
+prompt-engineering gap — the full raw outputs are in `evaluation/activity_b_results_ollama_hardened.json`.
+
 ## Verdict
 
 **Which would you ship for a bank, and why?** Ship the cloud API (Groq/OpenAI-class) for the customer-facing
-acknowledgement feature today, because the 27-second local latency is unacceptable in a live chat interface
-and the guardrailed-prompt accuracy gap (10/10 vs 8/10) matters more at banking scale than the marginal
-per-request cost. But pair it with the hardened prompt from Activity A, not the bare reference prompt — this
-benchmark shows the bare prompt is unsafe on any provider. Reserve a local model like Mistral for an
-internal, latency-tolerant, privacy-sensitive workflow (e.g., offline batch classification of archived
-complaints) where the data-residency win outweighs the latency cost.
+acknowledgement feature today, because the 27–34-second local latency is unacceptable in a live chat
+interface and the hardened-prompt accuracy gap (10/10 vs 8/10, confirmed even after giving Mistral the same
+guardrailed prompt) is a real model-capability gap, not a fixable prompt issue. Always ship the hardened
+prompt, never the bare reference one — the follow-up test shows it reliably eliminates unsafe false-promise
+and false-investigation claims regardless of provider, so that part is non-negotiable either way. Reserve a
+local model like Mistral for an internal, latency-tolerant, privacy-sensitive workflow (e.g., offline batch
+classification of archived complaints) where the data-residency win outweighs both the latency cost and the
+accuracy gap.
