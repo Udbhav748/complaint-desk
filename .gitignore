@@ -34,3 +34,7 @@ htmlcov/
 .DS_Store
 Thumbs.db
 *.pem
+
+# AI coding assistant local config/state
+.claude/
+.kilo/
