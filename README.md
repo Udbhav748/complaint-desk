@@ -186,6 +186,7 @@ complaint-desk/
 │   ├── run_eval_activity_b.py          # Activity B: literal OpenAI/Ollama swap
 │   ├── run_eval_activity_b_hardened.py # Follow-up: hardened prompt on Mistral
 │   ├── run_eval_activity_b_tuned.py    # Follow-up: targeted fix for Mistral's gap
+│   ├── prompts_hardened_activity_a.py  # Preserved pre-revert hardened prompt (used by the two scripts above)
 │   ├── prompts_mistral_tuned.py        # The targeted prompt fix itself
 │   ├── activity_a_report.md / .json    # Activity A results
 │   └── activity_b_report.md / activity_b_followup.md  # Activity B results
