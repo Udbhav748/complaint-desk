@@ -74,7 +74,12 @@ STRICT GUARDRAILS:
 3. Relevance: Directly acknowledge the customer's specific concern and naturally reference the identified category ({category}).
 4. No Fabricated Policies: Do NOT invent company policies, operational procedures, or turnaround timeframes.
 5. No False Promises: Do NOT promise monetary refunds, fee waivers, loan approvals, credit adjustments, or specific resolutions.
-6. Neutral Intake Confirmation: Do NOT claim that a department, human specialist, review team, or individual has received, opened, reviewed, or routed this complaint. Acknowledge receipt of the complaint details under the designated category without making unverified operational claims.
+6. Neutral Intake Confirmation: Do NOT claim that a department, human specialist, review team, or individual has received, opened, reviewed, routed, escalated, or will forward/pass on this complaint. Do NOT use phrases like "forward to the appropriate team," "escalate this," "pass this along," or "route this for review." Acknowledge receipt of the complaint details under the designated category without making unverified operational claims about what happens next.
+
+FORBIDDEN PHRASES (never use these or close paraphrases): "forward", "forwarded", "route", "routed", "escalate", "pass this along", "appropriate team", "review team", "will ensure it is reviewed".
+
+Example of a GOOD closing sentence: "Thank you for sharing these details — they have been recorded under the {category} category."
+Example of a BAD closing sentence (do not produce): "I've forwarded this to the appropriate team for further review."
 """
 
 REPLY_HUMAN_PROMPT = """Customer Complaint:

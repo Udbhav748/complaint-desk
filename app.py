@@ -19,6 +19,18 @@ def escape_html(value: object) -> str:
     """Safely escape any dynamic value for HTML interpolation."""
     return html.escape(str(value), quote=True)
 
+
+def escape_html_block(value: object) -> str:
+    """Escape text for interpolation inside a multi-line unsafe_allow_html block.
+
+    A blank line inside interpolated text terminates the surrounding raw HTML
+    block under CommonMark's HTML-block rules; everything after it then gets
+    reparsed as Markdown and, being indented, renders as a literal code block.
+    Collapsing newlines to <br> keeps the whole block free of blank lines.
+    """
+    escaped = html.escape(str(value), quote=True)
+    return escaped.replace("\r\n", "\n").replace("\n", "<br>")
+
 # Configure application logging (logs diagnostics locally without exposing secrets)
 logging.basicConfig(
     level=logging.INFO,
@@ -382,7 +394,7 @@ def render_conversation(messages: List[Dict[str, Any]], config: AppConfig) -> No
             {time_badge}
           </div>
           <div style="font-size: 0.93rem; line-height: 1.55; color: var(--text-color, #374151); word-wrap: break-word;">
-            {escape_html(item["complaint"])}
+            {escape_html_block(item["complaint"])}
           </div>
         </div>
         """
@@ -420,7 +432,7 @@ def render_conversation(messages: List[Dict[str, Any]], config: AppConfig) -> No
           </div>
 
           <div style="font-size: 0.93rem; line-height: 1.6; color: var(--text-color, #374151); word-wrap: break-word; margin-bottom: 0.85rem;">
-            {escape_html(item["reply"])}
+            {escape_html_block(item["reply"])}
           </div>
 
           <div style="display: flex; align-items: center; gap: 16px; font-size: 0.73rem; color: #6B7280; border-top: 1px solid rgba(128, 128, 128, 0.08); padding-top: 0.55rem;">

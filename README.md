@@ -8,15 +8,16 @@ A deterministic two-chain LangChain application for customer complaint classific
 
 **CURRENT:**
 - The architecture is fully built and **tested offline** (via `FakeListChatModel`).
-- The application is **configured for `gpt-4o-mini`**.
-- **No live GPT inference** is currently performed.
-- Zero code changes are required when an API key becomes available (managed entirely via `.env`).
+- The application was empirically evaluated in Activity A using the **Groq / openai/gpt-oss-20b** configuration.
+- The frozen 10-complaint benchmark was executed and analyzed against the live API.
+- Zero code changes are required to switch providers (managed entirely via `.env`).
+- **Deployed and live** on AWS EC2: [http://65.1.106.51:8501](http://65.1.106.51:8501).
 
 **FUTURE:**
-- Genuine `gpt-4o-mini` evaluation and benchmark scoring will occur once API credentials are provided.
-- The frozen 10-complaint benchmark will be empirically tested against actual live model responses.
+- The application is prepared for Activity B (local model integration).
 
 ---
+
 ## Overview
 
 **Complaint Desk** is an automated customer intake application that accepts customer complaints, classifies them into one of four supported categories (`billing`, `loan`, `fraud`, or `app_issue`), and generates an empathetic, professional customer intake acknowledgement.
@@ -57,15 +58,15 @@ The application implements a linear, deterministic pipeline orchestrated through
 ```mermaid
 flowchart TD
     A["User Complaint Input<br/>(Streamlit UI)"] --> B["Input Validation<br/>(src/validation.py)"]
-    
+
     B -- "Invalid (Length / Characters)" --> B1["Display User Warning<br/>(Execution Halts; No LLM Call)"]
     B -- "Valid Complaint Text" --> C["Chain 1: Classification<br/>(ChatPromptTemplate → ChatOpenAI T=0.0 → StrOutputParser)"]
-    
+
     C --> D["Category Validation<br/>(src/validation.py)"]
-    
+
     D -- "Invalid / Out-of-Spec" --> D1["Display User Error<br/>(Chain 2 NOT Invoked; Diagnostic Logged)"]
     D -- "Verified Category" --> E["Chain 2: Reply Generation<br/>(ChatPromptTemplate → ChatOpenAI T=0.2 → StrOutputParser)"]
-    
+
     E --> F["Append to Session State<br/>(st.session_state.messages)"]
     F --> G["Render Conversation History<br/>(st.chat_message)"]
 ```
@@ -250,12 +251,12 @@ The application orchestrates models via `ChatOpenAI` and supports two configurat
 - Uses the proprietary `gpt-4o-mini` model.
 - Requires OpenAI API access (`OPENAI_API_KEY`).
 
-**Groq:**
+**Groq (Tested Configuration):**
 - Uses `openai/gpt-oss-20b`.
 - Requires Groq API access (`GROQ_API_KEY`).
 - Accessed seamlessly through Groq's OpenAI-compatible endpoint (`https://api.groq.com/openai/v1`).
 
-> **IMPORTANT**: Groq does not provide the proprietary gpt-4o-mini model. The Groq configuration uses OpenAI's open-weight GPT-OSS 20B model served through Groq. The two models are not identical. The same LangChain chains and prompts operate deterministically with either provider.
+> **IMPORTANT**: The current live/tested configuration uses Groq / openai/gpt-oss-20b. This is distinctly different from OpenAI / gpt-4o-mini. The same LangChain chains and prompts operate deterministically with either provider.
 
 ### Supported Parameters
 
@@ -269,7 +270,7 @@ The application orchestrates models via `ChatOpenAI` and supports two configurat
 | `TEMPERATURE_CLASSIFICATION` | `0.0` | Sampling temperature for the classification chain. |
 | `TEMPERATURE_REPLY` | `0.2` | Sampling temperature for the reply generation chain. |
 
-> **Activity A Disclosure:** The project originally uses OpenAI / gpt-4o-mini for Activity A. The current live configuration may use Groq / openai/gpt-oss-20b. This distinction is explicit to prevent claiming that benchmark results obtained from GPT-OSS were produced by GPT-4o-mini.
+> **Activity A Disclosure:** The project originally targeted OpenAI / gpt-4o-mini. However, the actual Activity A tested configuration uses **Groq / openai/gpt-oss-20b**. This distinction is explicit to prevent claiming that benchmark results obtained from GPT-OSS were produced by GPT-4o-mini.
 
 > **Security Assurance**: The `AppConfig` class implements a custom `__repr__` method that automatically masks API keys (`sk-...1234` or `<NOT CONFIGURED>`), preventing accidental exposure in console outputs or application logs.
 
@@ -417,41 +418,78 @@ To support rigorous empirical evaluation across models (Activity A vs. Activity 
 | **CMP-009** | App froze during bill payment, balance debited but bill unpaid | `app_issue` | Compound case: root trigger is technical app crash during payment execution. |
 | **CMP-010** | Late fee applied due to bank holiday clearing latency | `billing` | Dispute over fee assessment resulting from processing schedule lag. |
 
-### Evaluation Methodology
-Each benchmark entry includes an empty evaluation schema:
-```json
-"results": {
-  "classification_correct": null,
-  "reply_relevant": null,
-  "invented_policy": null,
-  "professional_tone": null,
-  "notable_failure": null
-}
-```
-In accordance with academic integrity guidelines, these fields remain `null` until actual model inference is performed and manually evaluated against the defined criteria. The same frozen benchmark will be evaluated identically in Activity B.
+### Activity A Empirical Results
+
+The frozen 10-complaint benchmark was executed against the **Groq / openai/gpt-oss-20b** configuration. The following metrics were collected:
+
+- **Classification Accuracy:** 100% (10/10)
+- **Relevant Replies:** 10/10
+- **Professional Tone:** 10/10
+- **Unsupported Operational/Policy Claims:** 5/10
+- **Average Classification Latency:** 641.40 ms
+- **Average Reply Latency:** 451.08 ms
+- **Average Total Latency:** 1092.48 ms
+- **Automated tests:** 55 passed
+
+> **IMPORTANT:** These results come strictly from the frozen 10-case benchmark and the tested `Groq / openai/gpt-oss-20b` configuration. Do not generalize these numbers to all complaints or all deployments.
+
+### Observed Guardrail Limitations
+
+While classification performed correctly (100% accuracy) and replies maintained relevance and professional tone, the empirical evaluation revealed that **5 out of 10 replies** still produced unsupported operational claims despite the strict prompt guardrails.
+
+Several generated replies contained unsupported operational language, such as:
+- *Forwarding details for review*
+- *Forwarding to an appropriate team*
+- *Stating that a report was "logged"*
+
+These claims were treated as guardrail violations because the application has no actual ticketing/routing backend and therefore cannot truthfully claim those actions occurred.
+
+The original model outputs were NOT rewritten, and failures were NOT hidden. This is an observed model-output limitation from this benchmark run, demonstrating exactly why rigorous empirical evaluation is necessary.
 
 ---
 
-## Deployment Preparation
 
-The project is structured for clean deployment to **Streamlit Community Cloud** or any containerized hosting service.
+## Deployment
 
-### Deployment Checklist
-1. **Repository Setup**: Ensure the repository is pushed to a public GitHub repository.
-2. **Platform Link**: Connect the GitHub repository to Streamlit Community Cloud (`https://share.streamlit.io`).
-3. **Entrypoint Configuration**: Specify `app.py` as the primary application file.
-4. **Environment Secrets**: In the Streamlit deployment settings under **Advanced settings &rarr; Secrets**, add the secret configuration:
-   ```toml
-   OPENAI_API_KEY = "sk-..."
-   OPENAI_MODEL_NAME = "gpt-4o-mini"
-   TEMPERATURE_CLASSIFICATION = "0.0"
-   TEMPERATURE_REPLY = "0.2"
-   ```
-5. **Cold Start Verification**: Confirm the deployed app loads without errors, presents the empty-state interface, and handles missing keys gracefully.
+The application is containerized with Docker and deployed to a live AWS EC2 instance.
 
-> **Deployment Status**: Current status: deployment preparation complete; live deployment has not yet been performed. If the application is deployed before an API key is available, it may be used only to verify page availability, UI rendering, configuration state, and missing-key handling. It must not be considered a functional live AI demo. Live GPT-4o-mini inference requires an OpenAI API key.
+### Deployment Platform & Evidence
+- **Platform**: AWS EC2 (t3.micro, `ap-south-1`), Amazon Linux 2023, Docker container
+- **Live URL**: [http://65.1.106.51:8501](http://65.1.106.51:8501)
+- **Deployment Status**: Container running with `--restart unless-stopped`; health check (`/_stcore/health`) returns `ok`; verified reachable over HTTP from outside the instance.
+- **Actual Smoke Test Complaint**: "I was charged twice for my premium subscription."
+- **Observed Classification**: `billing`
+- **Observed Reply**: *Valid empathetic acknowledgement maintaining professional tone.*
+- **Session Persistence**: Fully verified across Streamlit reruns.
+
+### Deployment Steps (as executed)
+1. **Containerization**: `Dockerfile` builds a `python:3.12-slim` image, installs `requirements.txt`, and runs `streamlit run app.py --server.port=8501 --server.address=0.0.0.0`.
+2. **Infrastructure**: EC2 instance provisioned via AWS CLI with a dedicated security group (SSH restricted to the operator's IP, port `8501` open publicly) and a dedicated key pair.
+3. **Bootstrap**: Instance user-data installs and starts Docker on first boot.
+4. **Release**: Application source and `.env` copied to the instance via `scp`; image built and run on-host with `docker build` / `docker run --env-file .env`.
+5. **Verification**: Confirmed container health and public HTTP reachability post-deploy.
+
+> **Note:** This is a demo deployment (plain HTTP, no TLS) intended for Activity A evaluation. It is not configured for production traffic.
+
+### Live Deployment Screenshots
+
+Captured directly against the live EC2 URL above, exercising every supported category plus input validation.
+
+<table>
+<tr>
+<td width="33%"><img src="screenshots/deployment/01_initial_load.png" alt="Initial load — empty state" width="100%"><br><sub><b>Initial load</b> — empty state, sidebar config showing Groq provider</sub></td>
+<td width="33%"><img src="screenshots/deployment/02_submitted_complaint.png" alt="Billing complaint" width="100%"><br><sub><b>Billing</b> — duplicate charge complaint, classified & acknowledged</sub></td>
+<td width="33%"><img src="screenshots/deployment/03_fraud_complaint.png" alt="Fraud complaint" width="100%"><br><sub><b>Fraud</b> — unauthorized transaction, classified & acknowledged</sub></td>
+</tr>
+<tr>
+<td width="33%"><img src="screenshots/deployment/04_loan_complaint.png" alt="Loan complaint" width="100%"><br><sub><b>Loan</b> — EMI auto-debit delay, classified & acknowledged</sub></td>
+<td width="33%"><img src="screenshots/deployment/05_app_issue_complaint.png" alt="App issue complaint" width="100%"><br><sub><b>App issue</b> — Face ID login crash, classified & acknowledged</sub></td>
+<td width="33%"><img src="screenshots/deployment/06_validation_error.png" alt="Validation error state" width="100%"><br><sub><b>Validation</b> — sub-minimum-length input safely rejected before any LLM call</sub></td>
+</tr>
+</table>
 
 ---
+
 
 ## Activity A Alignment Matrix
 
@@ -470,7 +508,7 @@ The project is structured for clean deployment to **Streamlit Community Cloud** 
 | | No leaked secrets | Masked in `AppConfig.__repr__`, `.gitignore` strictly protects `.env` |
 | | Pinned dependencies | `requirements.txt` with exact tested versions under Python 3.13.9 |
 | | Reproducible documentation | Comprehensive setup, architecture diagrams, and test guides |
-| **Live Deployment (20%)** | Deployment readiness | Configured for zero-code-change deployment on Streamlit Cloud |
+| **Live Deployment (20%)** | Live, reachable deployment | Deployed via Docker to AWS EC2: [http://65.1.106.51:8501](http://65.1.106.51:8501) |
 
 ---
 
@@ -481,10 +519,9 @@ The project is structured for clean deployment to **Streamlit Community Cloud** 
 - **In-Memory Session Persistence**: Conversation history is stored in Streamlit `session_state`, which resets upon browser refresh or session termination.
 - **Closed Taxonomy**: Complaints that fall completely outside the four financial domains are rejected by design rather than directed to a human fallback queue.
 
-### Planned Future Improvements
-- **Activity B Extension**: Swap the LLM provider from `ChatOpenAI` to a local `ChatOllama` instance running Mistral 7B, evaluating both models against the identical frozen benchmark.
-- **Empirical Scoring**: Complete manual and automated scoring of the 10-complaint benchmark across both model backends.
-- **Database Persistence**: Optional external database backing (e.g., PostgreSQL / SQLite) for persistent multi-session ticket management.
+### Activity B Preparation
+- The decoupled `BaseChatModel` factory enables dropping in a local Ollama model (`ChatOllama`) without altering prompt templates, chain structure, or UI orchestration.
+- The frozen evaluation benchmark and automated test suite are already prepared to directly compare Activity B's local model against the current Activity A metrics.
 
 ---
 
