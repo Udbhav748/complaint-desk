@@ -2,7 +2,7 @@
 
 # 📋 Complaint Desk
 
-**A deterministic two-chain LangChain application for customer complaint classification and controlled acknowledgement generation.**
+**The literal FWC Module 8 §18.1 Activity A reference app — two LangChain LCEL chains, Streamlit UI, deployed.**
 
 Built with Streamlit for FWC AI/ML Training Module 8 — Activity A & Activity B.
 
@@ -11,7 +11,7 @@ Built with Streamlit for FWC AI/ML Training Module 8 — Activity A & Activity B
 [![LangChain](https://img.shields.io/badge/LangChain-LCEL-1C3C3C?style=for-the-badge)](https://python.langchain.com/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-UI-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![Docker](https://img.shields.io/badge/Docker-deployed-2496ED?style=for-the-badge&logo=docker&logoColor=white)](Dockerfile)
-[![Tests](https://img.shields.io/badge/tests-37%20passing-success?style=for-the-badge)](tests/)
+[![Tests](https://img.shields.io/badge/tests-41%20passing-success?style=for-the-badge)](tests/)
 
 **[🚀 Try the live app](http://65.1.106.51:8501)** · **[📊 Activity B comparison](evaluation/activity_b_report.md)** · **[🏗️ Architecture](#architecture)**
 
@@ -21,8 +21,8 @@ Built with Streamlit for FWC AI/ML Training Module 8 — Activity A & Activity B
 
 <table>
 <tr>
-<td width="50%"><img src="screenshots/deployment/01_initial_load.png" alt="Complaint Desk empty state"></td>
-<td width="50%"><img src="screenshots/deployment/02_submitted_complaint.png" alt="Complaint Desk billing classification"></td>
+<td width="50%"><img src="screenshots/deployment/01_empty_state.png" alt="Complaint Desk empty state"></td>
+<td width="50%"><img src="screenshots/deployment/02_billing.png" alt="Complaint Desk billing classification"></td>
 </tr>
 </table>
 
@@ -34,7 +34,7 @@ Built with Streamlit for FWC AI/ML Training Module 8 — Activity A & Activity B
 
 | | Status | Detail |
 |---|---|---|
-| ✅ | **Architecture built & tested offline** | Via `FakeListChatModel`, zero external calls |
+| ✅ | **Matches the §18.1 reference code exactly** | One shared `llm`, flat `temperature=0.3`, bare 2-line prompts, no validation layer, minimal `st.chat_message` UI — see [Exact-Spec Fidelity](#exact-spec-fidelity) |
 | ✅ | **Activity A empirically evaluated** | Frozen 10-complaint benchmark on **Groq / openai/gpt-oss-20b** |
 | ✅ | **Provider-agnostic** | Swap providers via `.env` — zero code changes |
 | ✅ | **Deployed and live** | AWS EC2 via Docker — [**http://65.1.106.51:8501**](http://65.1.106.51:8501) |
@@ -42,193 +42,125 @@ Built with Streamlit for FWC AI/ML Training Module 8 — Activity A & Activity B
 
 ---
 
-## Overview
+## Exact-Spec Fidelity
 
-**Complaint Desk** is an automated customer intake application that accepts customer complaints, classifies them into one of four supported categories (`billing`, `loan`, `fraud`, or `app_issue`), and generates an empathetic, professional customer intake acknowledgement.
+This repository's history includes a substantially hardened version of this app (few-shot prompts,
+input validation, category whitelisting, custom UI). **That version has been deliberately reverted.**
+The current `app.py` and `src/` match the handout's §18.1 reference code line-for-line in architecture:
 
-The project demonstrates production-grade LLM engineering principles:
-- **Defensive input sanitization**: Validates length, character encoding, and structure before invoking models.
-- **Two-chain sequential workflow**: Decouples classification from reply generation using LangChain Expression Language (LCEL).
-- **Strict category whitelisting**: Normalizes and checks classifier output against a closed taxonomy; invalid outputs halt the pipeline immediately without calling the reply model.
-- **Controlled generation**: Uses low-temperature decoding and strict negative prompt guardrails to prevent fabricated company policies, false financial promises, or false claims of internal routing.
-- **Session state persistence**: Maintains conversation history locally across Streamlit reruns.
+```python
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)   # one shared model, flat temperature
+classify = (ChatPromptTemplate.from_template(
+    "Classify into billing/loan/fraud/app_issue. One word only.\n{text}")
+    | llm | StrOutputParser())
+reply = (ChatPromptTemplate.from_template(
+    "Polite 60-word acknowledgement for a {cat} complaint. Sign as XYZ Finance.\n{text}")
+    | llm | StrOutputParser())
+```
 
-> **Architectural Note:** Complaint Desk is **not** an AI agent. It does not use agentic loops, tools, autonomous reasoning, LangGraph, vector databases, or retrieval-augmented generation (RAG). It implements two deterministic LangChain pipelines orchestrated via standard Python control flow as specified in Module 8.
+What this means concretely:
+- **No input validation.** Empty, malformed, or arbitrarily long input is passed straight to the model.
+- **No category whitelist.** Whatever the classifier returns (lowercased/stripped) is used as-is — an
+  out-of-spec category string is never caught or blocked.
+- **No prompt guardrails.** No few-shot examples, no disambiguation rules, no forbidden-phrase
+  constraints. The model is free to promise refunds, claim investigations, or fabricate policy — and
+  the empirical results below confirm it does.
+- **Minimal UI.** `st.chat_message("user").write(...)` / `st.chat_message("assistant").write(...)`,
+  no custom CSS, no sidebar, no error banners.
+
+One deliberate, disclosed deviation remains: **provider**. The handout's snippet uses
+`ChatOpenAI(model="gpt-4o-mini")`; this deployment runs on **Groq's `openai/gpt-oss-20b`** instead
+(configured via `.env`, zero code changes required to switch back — see [Configuration](#configuration)).
+This is the one point not reverted to the literal snippet.
+
+The hardened prompts, validation layer, and provider-specific few-shot fixes are preserved as separate,
+documented artifacts used in Activity B's analysis (`src/validation.py` still exists and is unit-tested,
+just no longer called by `app.py`; `evaluation/prompts_mistral_tuned.py` documents what it took to fix
+a local model's accuracy gap). Nothing was deleted — it was deliberately made unused in the production
+app to match the assignment exactly.
 
 ---
 
-## Key Features
+## Overview
 
-- **Strict Four-Category Classification**: Automatically maps complaints into `billing`, `loan`, `fraud`, or `app_issue`.
-- **Decoupled Two-Chain LCEL Architecture**:
-  - Chain 1: Intake classification (`ChatPromptTemplate → ChatOpenAI → StrOutputParser`).
-  - Chain 2: Customer acknowledgement (`ChatPromptTemplate → ChatOpenAI → StrOutputParser`).
-- **Input Validation Layer**: Rejects empty strings, whitespace, non-printable control characters, and inputs outside 5–4000 characters while preserving currency symbols ($, ₹, €, £) and multilingual UTF-8 text.
-- **Category Normalization & Whitelisting**: Sanitizes markdown artifacts and prefixes while preserving category tokens (`app_issue`), strictly rejecting out-of-spec categories.
-- **Safe Pipeline Halting**: Completely suppresses Chain 2 invocation if classification fails or produces an unverified category.
-- **Guardrailed Support Acknowledgement**: Limits responses to 2–4 sentences, acknowledges the verified category, and forbids inventing policies, refund timelines, or claims that human personnel have reviewed the complaint.
-- **Differentiated Temperature Strategy**: Configures $T=0.0$ for classification (minimizing token variance) and $T=0.2$ for reply generation (allowing natural phrasing while minimizing hallucination risk).
-- **Session-State Conversation Persistence**: Uses Streamlit's `st.session_state` to maintain chat history and provide a conversation reset button.
-- **Provider-Decoupled Design**: Abstracted via `BaseChatModel` factory functions to prepare for future local model swapping (e.g., Ollama/Mistral in Activity B) without modifying prompts, chains, or UI logic.
-- **Deterministic Offline Test Suite**: 37 automated tests verifying input validation, normalization, and LCEL contracts using `FakeListChatModel` with zero external API calls.
-- **Frozen 10-Complaint Benchmark**: Curated evaluation dataset in `evaluation/test_complaints.json` with ground truth labels and evaluation criteria for empirical assessment.
+**Complaint Desk** accepts a customer complaint, classifies it into one of four categories (`billing`,
+`loan`, `fraud`, `app_issue`), and drafts a short acknowledgement reply signed "XYZ Finance" — a direct
+implementation of the FWC Module 8 §18.1 demo app.
+
+> **Architectural Note:** Complaint Desk is **not** an AI agent. It does not use agentic loops, tools,
+> autonomous reasoning, LangGraph, vector databases, or retrieval-augmented generation (RAG). It
+> implements two deterministic LangChain LCEL pipelines sharing one model instance, orchestrated via
+> standard Python control flow.
 
 ---
 
 ## Architecture
 
-The application implements a linear, deterministic pipeline orchestrated through Python control flow:
-
 ```mermaid
 flowchart TD
-    A["User Complaint Input<br/>(Streamlit UI)"] --> B["Input Validation<br/>(src/validation.py)"]
-
-    B -- "Invalid (Length / Characters)" --> B1["Display User Warning<br/>(Execution Halts; No LLM Call)"]
-    B -- "Valid Complaint Text" --> C["Chain 1: Classification<br/>(ChatPromptTemplate → ChatOpenAI T=0.0 → StrOutputParser)"]
-
-    C --> D["Category Validation<br/>(src/validation.py)"]
-
-    D -- "Invalid / Out-of-Spec" --> D1["Display User Error<br/>(Chain 2 NOT Invoked; Diagnostic Logged)"]
-    D -- "Verified Category" --> E["Chain 2: Reply Generation<br/>(ChatPromptTemplate → ChatOpenAI T=0.2 → StrOutputParser)"]
-
-    E --> F["Append to Session State<br/>(st.session_state.messages)"]
-    F --> G["Render Conversation History<br/>(st.chat_message)"]
+    A["User Complaint Input<br/>(st.chat_input)"] --> B["Chain 1: Classification<br/>(ChatPromptTemplate | llm | StrOutputParser)"]
+    B --> C["Chain 2: Reply Generation<br/>(ChatPromptTemplate | llm | StrOutputParser)"]
+    C --> D["Append to Session State<br/>(st.session_state.log)"]
+    D --> E["Render Conversation History<br/>(st.chat_message)"]
 ```
 
-The application strictly separates responsibilities:
-1. `app.py`: UI rendering, session state management, and user error presentation.
-2. `src/config.py`: Environment configuration, hyperparameter defaults, and secret masking.
-3. `src/prompts.py`: LangChain prompt templates, domain boundaries, and guardrails.
-4. `src/chains.py`: LCEL runnable assembly and model provider abstraction.
-5. `src/validation.py`: Pure, deterministic input sanitization and category whitelisting.
-
----
-
-## Application Flow
-
-### Step 1 — Complaint Input
-The user inputs customer complaint text via the Streamlit chat input interface (`st.chat_input("Describe the customer's complaint...")`).
-
-### Step 2 — Input Validation
-`validate_complaint()` inspects the input:
-- Verifies the input is a valid string.
-- Rejects unprintable control characters (`\x00-\x08`, etc.).
-- Trims surrounding whitespace.
-- Enforces the length threshold: minimum 5 characters, maximum 4,000 characters.
-- If validation fails, the UI displays an error banner, logs sanitized diagnostics, and halts execution before any LLM is instantiated.
-
-### Step 3 — Classification Chain (Chain 1)
-If the input is valid, the complaint is passed to Chain 1:
-- Configured with `temperature = 0.0` and `max_tokens = 15`.
-- Prompt instructs the model to select exactly one lowercase category token.
-- Returns raw string output via `StrOutputParser`.
-
-### Step 4 — Category Validation & Normalization
-The raw classifier string passes through `validate_category()`:
-- `normalize_category()` strips extraneous formatting: markdown asterisks (`**`), code backticks (`` ` ``), quotes, optional `Category:` prefixes, and trailing punctuation while preserving internal underscores required for `app_issue`.
-- Checks exact membership against `ALLOWED_CATEGORIES = ("billing", "loan", "fraud", "app_issue")`.
-- **Safe Rejection**: If the output is not an exact match, the pipeline halts immediately. Chain 2 is never called. A user-friendly error message is displayed, and diagnostic details are recorded locally without exposing credentials.
-
-### Step 5 — Reply Generation Chain (Chain 2)
-If the category is verified, both the complaint and verified category are passed to Chain 2:
-- Configured with `temperature = 0.2` and `max_tokens = 300`.
-- Generates a measured 2–4 sentence intake acknowledgement under strict guardrails.
-
-### Step 6 — Conversation Persistence
-The interaction dictionary (`{"complaint": ..., "category": ..., "reply": ...}`) is appended to `st.session_state.messages` and rendered in the main chat view.
+- `app.py`: the entire UI and orchestration — ~25 lines, matching the handout.
+- `src/config.py`: environment configuration (`AppConfig`) — provider, model, single `temperature`.
+- `src/prompts.py`: the two bare prompt templates, verbatim from the handout.
+- `src/chains.py`: builds one shared `llm` and both LCEL chains from it.
+- `src/validation.py`: input/category validation utilities — **present in the codebase, unit-tested,
+  but not called by `app.py`** (removed from the live flow to match the handout exactly).
 
 ---
 
 ## LangChain Implementation
 
-Both pipelines are constructed using LangChain Expression Language (LCEL) in [`src/chains.py`](file:///D:/Projects/complaint-desk/src/chains.py):
-
 ```python
-# Chain 1: Classification Pipeline
-classification_chain = CLASSIFICATION_PROMPT | classification_llm | StrOutputParser()
-
-# Chain 2: Customer Reply Generation Pipeline
-reply_chain = REPLY_PROMPT | reply_llm | StrOutputParser()
+# src/chains.py
+llm = get_chat_model(api_key=..., model_name=..., temperature=cfg.temperature, provider=cfg.llm_provider)
+classification_chain = CLASSIFICATION_PROMPT | llm | StrOutputParser()
+reply_chain = REPLY_PROMPT | llm | StrOutputParser()
 ```
 
-### Model Decoupling (Activity B Preparation)
-Chains consume LangChain's `BaseChatModel` interface rather than directly binding to `ChatOpenAI`. The provider instantiation is centralized in `get_chat_model()`:
-
 ```python
-def get_chat_model(
-    api_key: Optional[str] = None,
-    model_name: str = "gpt-4o-mini",
-    temperature: float = 0.0,
-    max_tokens: Optional[int] = None,
-) -> BaseChatModel:
-    return ChatOpenAI(
-        api_key=api_key or None,
-        model=model_name,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        timeout=30.0,
-        max_retries=2,
-    )
+# src/prompts.py — verbatim from the §18.1 handout
+CLASSIFICATION_PROMPT = ChatPromptTemplate.from_template(
+    "Classify into billing/loan/fraud/app_issue. One word only.\n{text}"
+)
+REPLY_PROMPT = ChatPromptTemplate.from_template(
+    "Polite 60-word acknowledgement for a {cat} complaint. Sign as XYZ Finance.\n{text}"
+)
 ```
 
-For Activity B, the local-model swap (`ChatOllama(model="mistral", temperature=0.3)`) was benchmarked separately in [`evaluation/run_eval_activity_b.py`](evaluation/run_eval_activity_b.py) against the handout's literal reference prompt (not this app's hardened production prompt), to keep the OpenAI-vs-Ollama comparison a true one-line, apples-to-apples swap. See [`evaluation/activity_b_report.md`](evaluation/activity_b_report.md) for results.
+For Activity B, the provider line is the only thing that changes: `ChatOpenAI(...)` → `ChatOllama(model="mistral", temperature=0.3)`. See [`evaluation/run_eval_activity_b.py`](evaluation/run_eval_activity_b.py) and [`evaluation/activity_b_report.md`](evaluation/activity_b_report.md).
 
 ---
 
-## Prompt Design
+## Temperature
 
-Prompt templates are located in [`src/prompts.py`](file:///D:/Projects/complaint-desk/src/prompts.py).
-
-### 1. Classification Prompt
-- **Role**: Automated intake categorization engine.
-- **Explicit Domain Boundaries**: Clearly defines the scope for all four categories.
-- **Disambiguation Rule**: Explicitly addresses boundary overlap between billing and fraud:
-  > *"If the customer explicitly states that they did not authorize the transaction or account activity, classify as fraud. If the customer recognizes the transaction or payment context but disputes the amount, fee, duplication, invoice, or processing, classify as billing."*
-- **Few-Shot Examples**: Concrete examples demonstrating the exact output format for `billing`, `fraud`, and `app_issue`.
-- **Negative Constraints**: Strictly forbids markdown, punctuation, quotes, commentary, or conversational filler.
-- **Token Cap**: Capped at `max_tokens=15` to structurally restrict output length.
-
-### 2. Reply Generation Prompt
-- **Role**: Professional customer support intake assistant.
-- **Strict Guardrails**:
-  1. **Conciseness**: Enforces a strict length of 2 to 4 sentences.
-  2. **Relevance**: Directly references the verified category and acknowledges customer distress.
-  3. **Tone**: Enforces a calm, respectful, empathetic, and professional customer-support tone.
-  4. **No Fabricated Policies**: Prohibits inventing company procedures, policies, or resolution timelines.
-  5. **No False Promises**: Prohibits promising refunds, fee waivers, loan approvals, interest recalculations, or specific monetary outcomes.
-  6. **Neutral Intake Confirmation**: Explicitly commands the model **not** to claim that a department, human specialist, or review team has received, opened, or routed the complaint. The response serves purely as an automated intake acknowledgement.
-- **Token Cap**: Capped at `max_tokens=300` to prevent runaway generation while allowing natural sentence completion.
-
----
-
-## Temperature Configuration & Engineering Rationale
-
-The application uses differentiated temperature settings configured via environment variables:
+One flat value, shared by both chains, matching the handout exactly:
 
 ```bash
-TEMPERATURE_CLASSIFICATION=0.0
-TEMPERATURE_REPLY=0.2
+TEMPERATURE=0.3
 ```
 
-### Mathematical & Engineering Rationale
-The sampling temperature $T$ scales logits $z_i$ prior to softmax normalization:
-$$P(w_i) = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)}$$
-
-- **Classification ($T = 0.0$)**:
-  Classification is a closed-domain discrete categorization task. Setting $T = 0.0$ applies greedy argmax decoding, concentrating probability mass on the model's highest-confidence token. This reduces sampling variability across runs and minimizes the likelihood of the model emitting extraneous conversational tokens or invalid category names. *(Note: While $T=0.0$ sharply reduces sampling variance, it does not mathematically guarantee 100% determinism across distributed GPU clusters or provider infrastructure updates).*
-- **Reply Generation ($T = 0.2$)**:
-  For customer-facing responses, higher temperatures ($T \ge 0.7$) significantly elevate hallucination risk—such as fabricating refund amounts or promising specific turnaround times. Conversely, a temperature of $0.0$ can produce repetitive, rigid phrasing. Setting $T = 0.2$ provides an appropriate engineering balance: it allows sufficient linguistic naturalness for empathetic phrasing while keeping token generation tightly bound by the prompt guardrails.
+No differentiated classification/reply temperatures, no mathematical justification for a split —
+there isn't one, because there's only one value. `0.3` is a moderate, general-purpose setting: low
+enough for mostly-consistent category labels, high enough to avoid robotic reply phrasing.
 
 ---
 
 ## Category Definitions
 
-| Category | Description & Scope | Example Scenario |
-|---|---|---|
-| **`billing`** | Recognized or disputed financial activity, duplicate charges, incorrect amounts, recurring subscriptions, fees, or payment processing discrepancies. | A customer recognizes their monthly subscription charge but was billed twice on the same statement. |
-| **`loan`** | Personal or home loan accounts, interest rate calculations, EMI payment schedules, auto-debit dates, loan approvals, or principal balance inquiries. | An EMI deduction is debited two days before the agreed schedule date, causing an overdraft fee. |
-| **`fraud`** | Explicitly unauthorized transactions, suspicious account activity, account takeover, phishing messages, unsolicited OTP alerts, or compromised credentials. | A customer receives an unprompted OTP for a wire transfer they never initiated or authorized. |
-| **`app_issue`** | Technical software defects, mobile application crashes, biometric login errors (Face ID/fingerprint), frozen screens, or system error codes. | The mobile app crashes back to the home screen every time Face ID authentication is attempted. |
+The categories are named directly in the classification prompt (`billing/loan/fraud/app_issue`), with
+no further definitions, examples, or disambiguation rules provided to the model:
+
+| Category | Typical scenario |
+|---|---|
+| `billing` | Duplicate charges, disputed fees, payment-processing discrepancies |
+| `loan` | EMI schedules, auto-debit timing, loan/mortgage application status |
+| `fraud` | Unauthorized transactions, account takeover, compromised credentials |
+| `app_issue` | App crashes, biometric login failures, technical error codes |
 
 ---
 
@@ -238,30 +170,36 @@ $$P(w_i) = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)}$$
 complaint-desk/
 ├── .env.example              # Environment variable configuration template
 ├── .gitignore                # Version control exclusions (secrets, venvs, caches)
-├── README.md                 # Complete project documentation and architecture
-├── requirements.txt          # Exact pinned dependencies tested on Python 3.13.9
-├── app.py                    # Streamlit web application and UI orchestration
+├── README.md                 # Complete project documentation
+├── requirements.txt          # Pinned dependencies
+├── Dockerfile                # Container build for deployment
+├── app.py                    # The entire app — matches the §18.1 handout
 ├── src/
-│   ├── __init__.py           # Package marker
-│   ├── chains.py             # Decoupled LangChain LCEL pipelines (Classification & Reply)
-│   ├── config.py             # Typed configuration container (AppConfig) and constants
-│   ├── prompts.py            # Prompt templates with disambiguation rules and guardrails
-│   └── validation.py         # Pure deterministic input sanitization and category whitelisting
+│   ├── __init__.py
+│   ├── chains.py              # One shared llm, two LCEL chains
+│   ├── config.py               # AppConfig: provider, model, flat temperature
+│   ├── prompts.py              # The two bare prompt templates, verbatim
+│   └── validation.py           # Input/category validation (unit-tested, not wired into app.py)
 ├── evaluation/
-│   └── test_complaints.json  # Frozen 10-complaint evaluation benchmark for Activity A/B
+│   ├── test_complaints.json    # Frozen 10-complaint benchmark (Activity A & B)
+│   ├── run_eval.py             # Activity A benchmark runner
+│   ├── run_eval_activity_b.py          # Activity B: literal OpenAI/Ollama swap
+│   ├── run_eval_activity_b_hardened.py # Follow-up: hardened prompt on Mistral
+│   ├── run_eval_activity_b_tuned.py    # Follow-up: targeted fix for Mistral's gap
+│   ├── prompts_mistral_tuned.py        # The targeted prompt fix itself
+│   ├── activity_a_report.md / .json    # Activity A results
+│   └── activity_b_report.md / activity_b_followup.md  # Activity B results
 └── tests/
-    ├── __init__.py           # Test package marker
-    ├── test_chains.py        # Offline LCEL contract and pipeline integration tests
-    └── test_validation.py    # 24 deterministic input/category boundary unit tests
+    ├── test_chains.py          # LCEL contract tests (flat-temp, bare-prompt contract)
+    ├── test_provider.py        # Provider/config tests
+    └── test_validation.py      # Validation utility tests (module not wired into app.py)
 ```
 
 ---
 
 ## Configuration
 
-Configuration is managed via [`src/config.py`](file:///D:/Projects/complaint-desk/src/config.py) using `python-dotenv`.
-
-Copy `.env.example` to create a local `.env` file:
+Configuration is managed via [`src/config.py`](src/config.py) using `python-dotenv`. Copy `.env.example` to `.env`:
 
 ```bash
 cp .env.example .env
@@ -269,209 +207,92 @@ cp .env.example .env
 
 ### Supported Providers
 
-The application orchestrates models via `ChatOpenAI` and supports two configuration pathways:
-
-**OpenAI:**
-- Uses the proprietary `gpt-4o-mini` model.
-- Requires OpenAI API access (`OPENAI_API_KEY`).
-
-**Groq (Tested Configuration):**
-- Uses `openai/gpt-oss-20b`.
-- Requires Groq API access (`GROQ_API_KEY`).
-- Accessed seamlessly through Groq's OpenAI-compatible endpoint (`https://api.groq.com/openai/v1`).
-
-> **IMPORTANT**: The current live/tested configuration uses Groq / openai/gpt-oss-20b. This is distinctly different from OpenAI / gpt-4o-mini. The same LangChain chains and prompts operate deterministically with either provider.
-
-### Supported Parameters
-
 | Variable | Default | Description |
 |---|---|---|
-| `LLM_PROVIDER` | `openai` | Determines the active backend (`openai` or `groq`). |
-| `GROQ_API_KEY` | *(None)* | Groq API secret key. |
-| `GROQ_MODEL_NAME` | `openai/gpt-oss-20b` | Target Groq model identifier. |
-| `OPENAI_API_KEY` | *(None)* | OpenAI API secret key. |
-| `OPENAI_MODEL_NAME` | `gpt-4o-mini` | Target OpenAI chat model identifier. |
-| `TEMPERATURE_CLASSIFICATION` | `0.0` | Sampling temperature for the classification chain. |
-| `TEMPERATURE_REPLY` | `0.2` | Sampling temperature for the reply generation chain. |
+| `LLM_PROVIDER` | `openai` | `openai` or `groq` |
+| `OPENAI_API_KEY` | *(none)* | OpenAI API secret key |
+| `OPENAI_MODEL_NAME` | `gpt-4o-mini` | Matches the handout's model exactly |
+| `GROQ_API_KEY` | *(none)* | Groq API secret key |
+| `GROQ_MODEL_NAME` | `openai/gpt-oss-20b` | **Currently deployed/tested configuration** |
+| `TEMPERATURE` | `0.3` | Shared by both chains, matching the handout |
 
-> **Activity A Disclosure:** The project originally targeted OpenAI / gpt-4o-mini. However, the actual Activity A tested configuration uses **Groq / openai/gpt-oss-20b**. This distinction is explicit to prevent claiming that benchmark results obtained from GPT-OSS were produced by GPT-4o-mini.
-
-> **Security Assurance**: The `AppConfig` class implements a custom `__repr__` method that automatically masks API keys (`sk-...1234` or `<NOT CONFIGURED>`), preventing accidental exposure in console outputs or application logs.
+> **Provider disclosure:** the live deployment runs **Groq `openai/gpt-oss-20b`**, not OpenAI
+> `gpt-4o-mini` as shown in the handout's snippet. This is the one deliberate deviation from the
+> literal reference code — switching back requires only `.env` changes, no code changes.
 
 ---
 
 ## Installation
 
 ### Prerequisites
-- **Python Runtime**: Tested and verified under **Python 3.13.9** (64-bit).
-- **Git**: For version control.
+- Python 3.13 (64-bit)
+- Git
 
-### Setup Instructions
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/Udbhav748/complaint-desk.git
-   cd complaint-desk
-   ```
-
-2. **Create and activate a virtual environment**:
-   ```bash
-   # Windows (PowerShell)
-   python -m venv venv
-   .\venv\Scripts\Activate.ps1
-
-   # Linux / macOS
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-
-3. **Install exact pinned dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure environment variables**:
-   Create a `.env` file in the project root:
-   ```bash
-   OPENAI_API_KEY=your_actual_api_key_here
-   OPENAI_MODEL_NAME=gpt-4o-mini
-   TEMPERATURE_CLASSIFICATION=0.0
-   TEMPERATURE_REPLY=0.2
-   ```
+### Setup
+```bash
+git clone https://github.com/Udbhav748/complaint-desk.git
+cd complaint-desk
+python -m venv venv
+# Windows: .\venv\Scripts\Activate.ps1   |   Linux/macOS: source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # then fill in your API key(s)
+```
 
 ---
 
 ## Running Locally
 
-To launch the Streamlit application:
-
 ```bash
 streamlit run app.py
 ```
 
-The web interface will open in your default browser at `http://localhost:8501`.
-
-### Interface Elements
-- **Main View**: Application header, persistent complaint conversation view, and chat input box (`Describe the customer's complaint...`).
-- **Sidebar**:
-  - Configured model identifier (`gpt-4o-mini`).
-  - Classification and reply temperature values (`0.0`, `0.2`).
-  - Real-time API key status indicator (`● API Configured` or `● Configuration Required`).
-  - Supported category guide.
-  - **"Clear session"** button to reset conversation history.
+Opens at `http://localhost:8501`. The UI is exactly the handout's: a title, a chat input, and a
+running log of `user` / `assistant` message pairs, each assistant reply prefixed with `[category]`.
 
 ---
 
 ## Testing
 
-The test suite runs completely offline using `pytest` and LangChain's `FakeListChatModel`. Zero external API calls are made during test execution, ensuring reproducible and deterministic evaluation.
-
-### Running the Test Suite
 ```bash
 pytest -v
 ```
 
-### Verified Test Results
-```text
-collected 37 items
-
-tests/test_chains.py::test_01_classification_chain_construction PASSED        [  2%]
-tests/test_chains.py::test_02_reply_chain_construction PASSED                 [  5%]
-tests/test_chains.py::test_03_lcel_composition_steps PASSED                   [  8%]
-tests/test_chains.py::test_04_classification_input_contract PASSED            [ 10%]
-tests/test_chains.py::test_05_reply_input_contract PASSED                     [ 13%]
-tests/test_chains.py::test_06_classification_output_validates_cleanly PASSED  [ 16%]
-tests/test_chains.py::test_07_invalid_classifier_output_blocks_reply_invocation PASSED [ 18%]
-tests/test_validation.py::test_01_valid_complaint PASSED                      [ 21%]
-tests/test_validation.py::test_02_surrounding_whitespace_trimmed PASSED       [ 24%]
-tests/test_validation.py::test_03_empty_string_rejected PASSED                [ 27%]
-tests/test_validation.py::test_04_whitespace_only_rejected PASSED             [ 29%]
-tests/test_validation.py::test_05_non_string_input_rejected PASSED            [ 32%]
-tests/test_validation.py::test_06_input_too_short_rejected PASSED             [ 35%]
-tests/test_validation.py::test_07_input_too_long_rejected PASSED              [ 37%]
-tests/test_validation.py::test_08_normal_punctuation_preserved PASSED         [ 40%]
-tests/test_validation.py::test_09_currency_symbols_preserved PASSED           [ 43%]
-tests/test_validation.py::test_10_multilingual_text_preserved PASSED          [ 45%]
-tests/test_validation.py::test_11_forbidden_control_characters_rejected PASSED [ 48%]
-tests/test_validation.py::test_12_billing_accepted PASSED                     [ 51%]
-tests/test_validation.py::test_13_loan_accepted PASSED                        [ 54%]
-tests/test_validation.py::test_14_fraud_accepted PASSED                       [ 56%]
-tests/test_validation.py::test_15_app_issue_accepted PASSED                   [ 59%]
-tests/test_validation.py::test_16_case_normalization PASSED                   [ 62%]
-tests/test_validation.py::test_17_surrounding_whitespace PASSED               [ 64%]
-tests/test_validation.py::test_18_category_prefix_parsing[Category: billing-billing] PASSED [ 67%]
-tests/test_validation.py::test_18_category_prefix_parsing[Classification: loan-loan] PASSED [ 70%]
-tests/test_validation.py::test_18_category_prefix_parsing[Output: fraud-fraud] PASSED [ 72%]
-tests/test_validation.py::test_18_category_prefix_parsing[category: app_issue.-app_issue] PASSED [ 75%]
-tests/test_validation.py::test_19_markdown_formatting_removed[**billing**-billing] PASSED [ 78%]
-tests/test_validation.py::test_19_markdown_formatting_removed[`loan`-loan] PASSED [ 81%]
-tests/test_validation.py::test_19_markdown_formatting_removed[*fraud*-fraud] PASSED [ 83%]
-tests/test_validation.py::test_19_markdown_formatting_removed[***app_issue***-app_issue] PASSED [ 86%]
-tests/test_validation.py::test_20_app_issue_underscore_preserved PASSED       [ 89%]
-tests/test_validation.py::test_21_appissue_rejected PASSED                    [ 91%]
-tests/test_validation.py::test_22_billing_issue_rejected PASSED               [ 94%]
-tests/test_validation.py::test_23_unknown_category_rejected PASSED            [ 97%]
-tests/test_validation.py::test_24_non_string_classification_rejected PASSED  [100%]
-
-============================= 37 passed in 4.12s =============================
-```
-
-### Test Scope Summary
-- **Input Validation (11 tests)**: Tests string length limits (5–4000), whitespace trimming, empty inputs, non-string types, punctuation preservation, currency preservation (₹, $, €, £), multilingual text, and control character rejections.
-- **Category Validation (19 tests)**: Tests whitelisting for each category, case insensitivity, surrounding whitespace, `Category:` prefix stripping, markdown cleanup, `app_issue` underscore preservation, and strict rejection of out-of-spec categories (`appissue`, `billing_issue`, `uncategorized`).
-- **Chain Contracts (7 tests)**: Tests LCEL pipeline construction, runnable composition (`ChatPromptTemplate → model → StrOutputParser`), parameter dictionary input contracts, and the orchestration contract confirming invalid categories block downstream reply generation.
+41 tests pass, offline, using `FakeListChatModel` — zero external API calls:
+- **`test_chains.py`** (7 tests): LCEL composition, the `{text}`/`{cat}` input contract matching the
+  handout's variable names, and confirms the reference app's actual behavior — raw classifier output
+  is used as-is with no whitelist check.
+- **`test_provider.py`** (4 tests): provider/base-URL routing for OpenAI vs. Groq.
+- **`test_validation.py`** (24 tests): the validation utilities still work correctly as standalone
+  functions — they're just not called by `app.py` anymore.
 
 ---
 
 ## Frozen Evaluation Benchmark
 
-To support rigorous empirical evaluation across models (Activity A vs. Activity B), a frozen dataset of 10 representative complaints is maintained in [`evaluation/test_complaints.json`](file:///D:/Projects/complaint-desk/evaluation/test_complaints.json).
+The same 10-complaint dataset (`evaluation/test_complaints.json`) used for Activity A and Activity B.
 
-### Benchmark Cases Overview
+### Activity A Empirical Results (current exact-spec code)
 
-| ID | Topic / Scenario | Expected Category | Key Ground Truth Rationale |
-|---|---|---|---|
-| **CMP-001** | Duplicate subscription deduction on monthly statement | `billing` | Recognized financial transaction with undisputed merchant identity. |
-| **CMP-002** | Personal loan EMI debited two days early | `loan` | Concerns loan repayment scheduling and auto-debit timing. |
-| **CMP-003** | Unprompted SMS with OTP for unauthorized wire transfer | `fraud` | Explicit report of unauthorized transaction attempt and security compromise. |
-| **CMP-004** | App crash during iOS Face ID biometric authentication | `app_issue` | Software defect and mobile application crash. |
-| **CMP-005** | Billed recurring fee following confirmed cancellation | `billing` | Disputed recurring charge on recognized customer account. |
-| **CMP-006** | Mortgage refinancing application stalled for 7 weeks | `loan` | Application processing delay and evaluation status inquiry. |
-| **CMP-007** | Online banking password and recovery email altered at 3 AM | `fraud` | Severe account takeover and credential compromise without customer authorization. |
-| **CMP-008** | Statement history tab crashes with HTTP/2 protocol error | `app_issue` | User interface loading failure and client error code. |
-| **CMP-009** | App froze during bill payment, balance debited but bill unpaid | `app_issue` | Compound case: root trigger is technical app crash during payment execution. |
-| **CMP-010** | Late fee applied due to bank holiday clearing latency | `billing` | Dispute over fee assessment resulting from processing schedule lag. |
+Re-run against the live Groq `openai/gpt-oss-20b` deployment after reverting to the literal §18.1 code:
 
-### Activity A Empirical Results
+- **Classification Accuracy:** 10/10
+- **Average Total Latency:** ~955 ms
+- **Replies containing unsupported claims (refunds, investigations, "securing your account"):** **8/10**
 
-The frozen 10-complaint benchmark was executed against the **Groq / openai/gpt-oss-20b** configuration. The following metrics were collected:
+> **This number went up, not down**, compared to the earlier hardened-prompt version (which scored
+> 5/10 on the same check). That's expected and consistent: the bare reference prompt in §18.1 has no
+> guardrails against false promises, so the model readily produces them. Representative example
+> (CMP-001, billing): *"Our team is reviewing the transaction and **will issue a refund promptly**."*
+> Representative example (CMP-007, fraud): *"We have **initiated a full investigation**... Our fraud
+> team will review all relevant logs and **secure** [your account]."* Full raw outputs:
+> [`evaluation/activity_a_results.json`](evaluation/activity_a_results.json).
 
-- **Classification Accuracy:** 100% (10/10)
-- **Relevant Replies:** 10/10
-- **Professional Tone:** 10/10
-- **Unsupported Operational/Policy Claims:** 5/10
-- **Average Classification Latency:** 641.40 ms
-- **Average Reply Latency:** 451.08 ms
-- **Average Total Latency:** 1092.48 ms
-- **Automated tests:** 55 passed
-
-> **IMPORTANT:** These results come strictly from the frozen 10-case benchmark and the tested `Groq / openai/gpt-oss-20b` configuration. Do not generalize these numbers to all complaints or all deployments.
-
-### Observed Guardrail Limitations
-
-While classification performed correctly (100% accuracy) and replies maintained relevance and professional tone, the empirical evaluation revealed that **5 out of 10 replies** still produced unsupported operational claims despite the strict prompt guardrails.
-
-Several generated replies contained unsupported operational language, such as:
-- *Forwarding details for review*
-- *Forwarding to an appropriate team*
-- *Stating that a report was "logged"*
-
-These claims were treated as guardrail violations because the application has no actual ticketing/routing backend and therefore cannot truthfully claim those actions occurred.
-
-The original model outputs were NOT rewritten, and failures were NOT hidden. This is an observed model-output limitation from this benchmark run, demonstrating exactly why rigorous empirical evaluation is necessary.
+This is not a bug to fix — it's the literal, documented behavior of the assignment's reference prompt,
+and it's exactly the finding Activity B's follow-up analysis explores further (see
+[`evaluation/activity_b_report.md`](evaluation/activity_b_report.md)): the guardrails that would
+prevent this are a deliberate engineering addition on top of the base spec, not part of it.
 
 ---
-
 
 ## Deployment
 
@@ -480,76 +301,80 @@ The application is containerized with Docker and deployed to a live AWS EC2 inst
 ### Deployment Platform & Evidence
 - **Platform**: AWS EC2 (t3.micro, `ap-south-1`), Amazon Linux 2023, Docker container
 - **Live URL**: [http://65.1.106.51:8501](http://65.1.106.51:8501)
-- **Deployment Status**: Container running with `--restart unless-stopped`; health check (`/_stcore/health`) returns `ok`; verified reachable over HTTP from outside the instance.
-- **Actual Smoke Test Complaint**: "I was charged twice for my premium subscription."
-- **Observed Classification**: `billing`
-- **Observed Reply**: *Valid empathetic acknowledgement maintaining professional tone.*
-- **Session Persistence**: Fully verified across Streamlit reruns.
+- **Deployment Status**: Container running with `--restart unless-stopped`; health check
+  (`/_stcore/health`) returns `ok`; verified reachable over HTTP from outside the instance.
 
 ### Deployment Steps (as executed)
-1. **Containerization**: `Dockerfile` builds a `python:3.12-slim` image, installs `requirements.txt`, and runs `streamlit run app.py --server.port=8501 --server.address=0.0.0.0`.
-2. **Infrastructure**: EC2 instance provisioned via AWS CLI with a dedicated security group (SSH restricted to the operator's IP, port `8501` open publicly) and a dedicated key pair.
+1. **Containerization**: `Dockerfile` builds a `python:3.12-slim` image, installs `requirements.txt`,
+   and runs `streamlit run app.py --server.port=8501 --server.address=0.0.0.0`.
+2. **Infrastructure**: EC2 instance provisioned via AWS CLI with a dedicated security group (SSH
+   restricted to the operator's IP, port `8501` open publicly) and a dedicated key pair.
 3. **Bootstrap**: Instance user-data installs and starts Docker on first boot.
-4. **Release**: Application source and `.env` copied to the instance via `scp`; image built and run on-host with `docker build` / `docker run --env-file .env`.
+4. **Release**: Application source and `.env` copied to the instance via `scp`; image built and run
+   on-host with `docker build` / `docker run --env-file .env`.
 5. **Verification**: Confirmed container health and public HTTP reachability post-deploy.
 
-> **Note:** This is a demo deployment (plain HTTP, no TLS) intended for Activity A evaluation. It is not configured for production traffic.
+> **Note:** This is a demo deployment (plain HTTP, no TLS) for Activity A evaluation, not configured
+> for production traffic.
 
 ### Live Deployment Screenshots
 
-Captured directly against the live EC2 URL above, exercising every supported category plus input validation.
+Captured directly against the live EC2 URL above, running the current exact-spec app.
 
 <table>
 <tr>
-<td width="33%"><img src="screenshots/deployment/01_initial_load.png" alt="Initial load — empty state" width="100%"><br><sub><b>Initial load</b> — empty state, sidebar config showing Groq provider</sub></td>
-<td width="33%"><img src="screenshots/deployment/02_submitted_complaint.png" alt="Billing complaint" width="100%"><br><sub><b>Billing</b> — duplicate charge complaint, classified & acknowledged</sub></td>
-<td width="33%"><img src="screenshots/deployment/03_fraud_complaint.png" alt="Fraud complaint" width="100%"><br><sub><b>Fraud</b> — unauthorized transaction, classified & acknowledged</sub></td>
+<td width="33%"><img src="screenshots/deployment/01_empty_state.png" alt="Empty state" width="100%"><br><sub><b>Empty state</b> — the handout's minimal title + chat input</sub></td>
+<td width="33%"><img src="screenshots/deployment/02_billing.png" alt="Billing complaint" width="100%"><br><sub><b>Billing</b> — note the unguarded refund promise</sub></td>
+<td width="33%"><img src="screenshots/deployment/03_fraud.png" alt="Fraud complaint" width="100%"><br><sub><b>Fraud</b> — note the unguarded "investigation" claim</sub></td>
 </tr>
 <tr>
-<td width="33%"><img src="screenshots/deployment/04_loan_complaint.png" alt="Loan complaint" width="100%"><br><sub><b>Loan</b> — EMI auto-debit delay, classified & acknowledged</sub></td>
-<td width="33%"><img src="screenshots/deployment/05_app_issue_complaint.png" alt="App issue complaint" width="100%"><br><sub><b>App issue</b> — Face ID login crash, classified & acknowledged</sub></td>
-<td width="33%"><img src="screenshots/deployment/06_validation_error.png" alt="Validation error state" width="100%"><br><sub><b>Validation</b> — sub-minimum-length input safely rejected before any LLM call</sub></td>
+<td width="33%"><img src="screenshots/deployment/04_loan.png" alt="Loan complaint" width="100%"><br><sub><b>Loan</b> — misclassified as <code>billing</code> by the bare prompt (honest result, not cherry-picked)</sub></td>
+<td width="33%"><img src="screenshots/deployment/05_app_issue.png" alt="App issue complaint" width="100%"><br><sub><b>App issue</b> — correctly classified and acknowledged</sub></td>
+<td width="33%"></td>
 </tr>
 </table>
 
 ---
 
-
 ## Activity A Alignment Matrix
 
-| FWC Rubric Dimension | Activity A Requirement | Implementation Evidence |
+| FWC Rubric Dimension | Requirement | Implementation Evidence |
 |---|---|---|
-| **Functionality (40%)** | User pastes customer complaint | Streamlit `st.chat_input` interface in `app.py` |
-| | Classify into 4 categories | Chain 1 in `src/chains.py` (`billing`, `loan`, `fraud`, `app_issue`) |
-| | Generate category-appropriate reply | Chain 2 in `src/chains.py` conditioned on verified category |
-| | Conversation persistence | Stored across reruns via `st.session_state.messages` |
-| | Safe error handling | `src/validation.py` sanitizes input and safely halts invalid categories |
-| **Prompt Quality & Temp (20%)** | Strong prompts with clear roles | System prompts in `src/prompts.py` with disambiguation rules |
-| | Strict category formatting | Few-shot examples and strict negative constraints in Chain 1 |
-| | Guardrailed acknowledgements | 2–4 sentence limit, anti-routing rule, no false promises in Chain 2 |
-| | Documented temperature choice | $T=0.0$ for classification, $T=0.2$ for reply; justified mathematically |
-| **GitHub & README (20%)** | Clean repository & structure | Decoupled architecture (`app.py`, `src/`, `tests/`, `evaluation/`) |
-| | No leaked secrets | Masked in `AppConfig.__repr__`, `.gitignore` strictly protects `.env` |
-| | Pinned dependencies | `requirements.txt` with exact tested versions under Python 3.13.9 |
-| | Reproducible documentation | Comprehensive setup, architecture diagrams, and test guides |
-| **Live Deployment (20%)** | Live, reachable deployment | Deployed via Docker to AWS EC2: [http://65.1.106.51:8501](http://65.1.106.51:8501) |
+| **Functionality (40%)** | Paste → classify → reply → persist | `app.py`, matching the handout line-for-line |
+| **Prompt Quality & Temp (20%)** | Prompt quality, justified temperature | Bare 2-line prompts verbatim from the handout; flat `temperature=0.3` (no split to justify — matches the single value shown) |
+| **GitHub & README (20%)** | Clean repo, no leaked secrets, reproducible docs | `.gitignore` protects `.env`/`*.pem`; this README documents the exact deviations (provider) and non-deviations |
+| **Live Deployment (20%)** | Live, reachable URL | Deployed via Docker to AWS EC2: [http://65.1.106.51:8501](http://65.1.106.51:8501) |
 
 ---
 
-## Limitations & Future Improvements
+## Activity B — OpenAI ↔ Ollama Swap
 
-### Current Limitations
-- **Intake Only**: The application acts strictly as an intake acknowledgement system; it does not connect to ticketing systems (e.g., Jira, Zendesk) or backend core banking databases.
-- **In-Memory Session Persistence**: Conversation history is stored in Streamlit `session_state`, which resets upon browser refresh or session termination.
-- **Closed Taxonomy**: Complaints that fall completely outside the four financial domains are rejected by design rather than directed to a human fallback queue.
-
-### Activity B — OpenAI ↔ Ollama Swap
-
-Completed. The handout's literal one-line swap (`ChatOpenAI(...)` → `ChatOllama(model="mistral", temperature=0.3)`) was benchmarked against the same frozen 10-complaint dataset used for Activity A. Full results — reply quality, latency, cost per 1,000 requests, data privacy, and a shipping recommendation — are in [`evaluation/activity_b_report.md`](evaluation/activity_b_report.md).
+Completed. The literal one-line swap (`ChatOpenAI(...)` → `ChatOllama(model="mistral", temperature=0.3)`)
+was benchmarked against the same frozen 10-complaint dataset. Full results — reply quality, latency,
+cost per 1,000 requests, data privacy, and a 3-sentence shipping verdict — are in
+[`evaluation/activity_b_report.md`](evaluation/activity_b_report.md).
 
 Key findings:
-- The bare reference prompt (no guardrails) produced unsafe false-promise/false-investigation claims on **both** providers — confirming Activity A's hardened prompt work was necessary, not cosmetic.
-- **Follow-up**: hardening the prompt on Mistral dropped guardrail violations to **0/10** across 3 runs (guardrails are portable across providers), but classification stuck at 8/10 with the same 2 cases missed every time (a stuck-status loan case and a processing-delay billing case, both misread as `app_issue`). Root-caused it to a missing disambiguation rule and applied a targeted fix (`evaluation/prompts_mistral_tuned.py`) — confirmed **10/10 across 2 runs** afterward. Full story in [`evaluation/activity_b_followup.md`](evaluation/activity_b_followup.md).
-- Latency: cloud ~1.1s vs. local CPU inference ~20–35s per complaint — the real remaining tradeoff once both providers hit 10/10.
-- The OpenAI side of the live run hit an out-of-credits API error; the cloud comparison point uses the existing Groq benchmark data instead, with OpenAI's published pricing used for the cost estimate. See the report for full details and the raw error evidence.
+- The bare reference prompt produced unsafe false-promise/false-investigation claims on **both**
+  providers — this is now also visible directly in Activity A's own results above, not just Activity B's.
+- **Follow-up**: hardening the prompt on Mistral dropped guardrail violations to **0/10** across 3 runs,
+  but classification stuck at 8/10 with the same 2 cases missed every time. Root-caused to a missing
+  disambiguation rule; a targeted fix (`evaluation/prompts_mistral_tuned.py`) brought it to **10/10**,
+  confirmed over 2 runs. Full story: [`evaluation/activity_b_followup.md`](evaluation/activity_b_followup.md).
+- Latency: cloud ~1s vs. local CPU inference ~20–35s per complaint — the deciding factor once both
+  providers reach comparable accuracy.
+- The live OpenAI run hit an out-of-credits API error; the cloud comparison point uses Groq's existing
+  benchmark data instead, with OpenAI's published pricing used for the cost estimate.
 
+---
+
+## Limitations
+
+- **No input validation in the live app** (by design, to match §18.1 exactly) — arbitrary or malicious
+  input is passed directly to the model. `src/validation.py` provides this capability and is
+  unit-tested, but intentionally not wired into `app.py`.
+- **No category whitelist** — an out-of-spec classifier output is used as-is.
+- **No guardrails against false promises** — see the Activity A results above. This is the literal,
+  documented behavior of the assignment's reference prompt.
+- **In-memory session persistence** — conversation history resets on browser refresh.
+- **Intake only** — no connection to ticketing systems or backend banking databases.

@@ -17,14 +17,12 @@ load_dotenv(ROOT_DIR / ".env")
 # Canonical complaint categories required by FWC Module 8
 ALLOWED_CATEGORIES: Tuple[str, ...] = ("billing", "loan", "fraud", "app_issue")
 
-# Default hyperparameter values
+# Default hyperparameter values — matches FWC Module 8 §18.1 reference code exactly:
+# ChatOpenAI(model="gpt-4o-mini", temperature=0.3), one shared model, no token cap.
 DEFAULT_MODEL_NAME: str = "gpt-4o-mini"
 DEFAULT_GROQ_MODEL_NAME: str = "openai/gpt-oss-20b"
 DEFAULT_PROVIDER: str = "openai"
-DEFAULT_TEMP_CLASSIFICATION: float = 0.0
-DEFAULT_TEMP_REPLY: float = 0.2
-MAX_CLASSIFICATION_TOKENS: int = 15
-MAX_REPLY_TOKENS: int = 300
+DEFAULT_TEMPERATURE: float = 0.3
 
 
 @dataclass(frozen=True)
@@ -36,10 +34,7 @@ class AppConfig:
     llm_provider: str = DEFAULT_PROVIDER
     model_name: str = DEFAULT_MODEL_NAME
     groq_model_name: str = DEFAULT_GROQ_MODEL_NAME
-    temperature_classification: float = DEFAULT_TEMP_CLASSIFICATION
-    temperature_reply: float = DEFAULT_TEMP_REPLY
-    max_classification_tokens: int = MAX_CLASSIFICATION_TOKENS
-    max_reply_tokens: int = MAX_REPLY_TOKENS
+    temperature: float = DEFAULT_TEMPERATURE
 
     @classmethod
     def from_env(cls) -> "AppConfig":
@@ -56,18 +51,9 @@ class AppConfig:
         groq_model = os.getenv("GROQ_MODEL_NAME", DEFAULT_GROQ_MODEL_NAME).strip()
 
         try:
-            temp_cls = float(
-                os.getenv("TEMPERATURE_CLASSIFICATION", str(DEFAULT_TEMP_CLASSIFICATION))
-            )
+            temperature = float(os.getenv("TEMPERATURE", str(DEFAULT_TEMPERATURE)))
         except ValueError:
-            temp_cls = DEFAULT_TEMP_CLASSIFICATION
-
-        try:
-            temp_reply = float(
-                os.getenv("TEMPERATURE_REPLY", str(DEFAULT_TEMP_REPLY))
-            )
-        except ValueError:
-            temp_reply = DEFAULT_TEMP_REPLY
+            temperature = DEFAULT_TEMPERATURE
 
         return cls(
             openai_api_key=openai_key,
@@ -75,10 +61,7 @@ class AppConfig:
             llm_provider=provider,
             model_name=openai_model if openai_model else DEFAULT_MODEL_NAME,
             groq_model_name=groq_model if groq_model else DEFAULT_GROQ_MODEL_NAME,
-            temperature_classification=temp_cls,
-            temperature_reply=temp_reply,
-            max_classification_tokens=MAX_CLASSIFICATION_TOKENS,
-            max_reply_tokens=MAX_REPLY_TOKENS,
+            temperature=temperature,
         )
 
     @property
@@ -116,8 +99,5 @@ class AppConfig:
             f"groq_api_key='{mask(self.groq_api_key)}', "
             f"model_name='{self.model_name}', "
             f"groq_model_name='{self.groq_model_name}', "
-            f"temperature_classification={self.temperature_classification}, "
-            f"temperature_reply={self.temperature_reply}, "
-            f"max_classification_tokens={self.max_classification_tokens}, "
-            f"max_reply_tokens={self.max_reply_tokens})"
+            f"temperature={self.temperature})"
         )

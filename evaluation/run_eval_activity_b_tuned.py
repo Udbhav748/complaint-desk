@@ -26,7 +26,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_ollama import ChatOllama
 
 from evaluation.prompts_mistral_tuned import CLASSIFICATION_PROMPT_TUNED
-from src.prompts import REPLY_PROMPT
+from evaluation.prompts_hardened_activity_a import REPLY_PROMPT
 from src.validation import validate_category
 
 DATASET_PATH = "evaluation/test_complaints.json"

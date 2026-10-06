@@ -15,7 +15,7 @@ Groq to 10/10 and should not be modified for one smaller model's quirk).
 """
 
 from langchain_core.prompts import ChatPromptTemplate
-from src.prompts import REPLY_PROMPT  # unchanged — reply guardrails are provider-agnostic
+from evaluation.prompts_hardened_activity_a import REPLY_PROMPT  # unchanged — reply guardrails are provider-agnostic
 
 CLASSIFICATION_SYSTEM_PROMPT_TUNED = """You are an automated customer complaint intake classification engine.
 Your sole responsibility is to evaluate an incoming customer complaint and classify it into exactly ONE of the four valid categories listed below:

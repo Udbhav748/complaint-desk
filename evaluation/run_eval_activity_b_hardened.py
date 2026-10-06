@@ -31,7 +31,7 @@ load_dotenv(".env")
 from langchain_core.output_parsers import StrOutputParser
 from langchain_ollama import ChatOllama
 
-from src.prompts import CLASSIFICATION_PROMPT, REPLY_PROMPT
+from evaluation.prompts_hardened_activity_a import CLASSIFICATION_PROMPT, REPLY_PROMPT
 from src.validation import validate_category
 
 DATASET_PATH = "evaluation/test_complaints.json"

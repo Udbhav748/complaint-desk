@@ -1,9 +1,16 @@
 # Activity B Follow-up — Does the Hardened Prompt Fix Mistral?
 
+> **Note:** at the time this follow-up was run, the hardened prompt tested here lived in
+> `src/prompts.py` and was Activity A's live production prompt. Activity A has since been reverted to
+> match the FWC Module 8 §18.1 reference code exactly (bare prompts, no guardrails) — see the README's
+> "Exact-Spec Fidelity" section. The hardened prompt tested below has been preserved, unchanged, at
+> [`evaluation/prompts_hardened_activity_a.py`](prompts_hardened_activity_a.py) specifically so this
+> comparison remains reproducible and accurate. It is no longer what `app.py` uses in production.
+
 The main comparison (`activity_b_report.md`) used the handout's *bare* reference prompt on both
 providers, to isolate the prompt's effect from the model's effect. This follow-up asks: if Mistral
-gets Activity A's actual hardened prompt (`src/prompts.py`) instead of the bare one, does it match
-Groq's behavior? And when it doesn't, can the gap be fixed with better prompting, or is it a hard
+gets Activity A's then-production hardened prompt instead of the bare one, does it match Groq's
+behavior? And when it doesn't, can the gap be fixed with better prompting, or is it a hard
 model-capability ceiling?
 
 ## Step 1 — Hardened prompt, 3 runs
@@ -30,16 +37,17 @@ Two findings, both stable across all 3 runs:
 
 CMP-006 describes a mortgage application "stuck" in a status portal pending review — a loan-processing
 delay, not a software bug. CMP-010 describes a late fee caused by a processing/clearing delay — a
-billing dispute, not a software bug. Activity A's hardened prompt (`src/prompts.py`) has no explicit
-rule separating "a process is slow" from "the app is broken," and Groq's larger model apparently
-infers that distinction unaided while Mistral does not.
+billing dispute, not a software bug. The hardened prompt
+(`evaluation/prompts_hardened_activity_a.py`) has no explicit rule separating "a process is slow" from
+"the app is broken," and Groq's larger model apparently infers that distinction unaided while Mistral
+does not.
 
 Rather than rerun the same prompt until a lucky seed produced 10/10 — which would misrepresent typical
 behavior — the actual gap was fixed: a second disambiguation rule plus two targeted few-shot examples
 were added in a **separate prompt variant** (`evaluation/prompts_mistral_tuned.py`), explicitly stating
-that a stuck/pending status portal is not, by itself, an `app_issue`. The production prompt in
-`src/prompts.py` (used by Groq, already at 10/10) was left untouched — this is a local-model-specific
-tuning, not a change to Activity A's shipped prompt.
+that a stuck/pending status portal is not, by itself, an `app_issue`. The hardened prompt itself
+(already at 10/10 on Groq) was left untouched — this is a local-model-specific tuning, not a change to
+the prompt being tested.
 
 ## Step 3 — Tuned prompt, 2 runs
 

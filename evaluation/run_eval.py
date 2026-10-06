@@ -6,6 +6,7 @@ import platform
 import importlib.metadata
 from dotenv import load_dotenv
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 load_dotenv(".env")
 os.environ["LLM_PROVIDER"] = "groq"
 
@@ -49,7 +50,7 @@ def main():
         # Classification
         t0 = time.perf_counter()
         try:
-            actual_raw = c_chain.invoke({"complaint": complaint})
+            actual_raw = c_chain.invoke({"text": complaint})
         except Exception as e:
             actual_raw = f"ERROR: {e}"
         t1 = time.perf_counter()
@@ -67,7 +68,7 @@ def main():
         t2 = time.perf_counter()
         if actual_category != "unclassified":
             try:
-                reply = r_chain.invoke({"complaint": complaint, "category": actual_category})
+                reply = r_chain.invoke({"text": complaint, "cat": actual_category})
             except Exception as e:
                 reply = f"ERROR: {e}"
         else:
@@ -106,10 +107,7 @@ def main():
             "executed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "provider": config.llm_provider,
             "model": config.active_model_name,
-            "classification_temperature": config.temperature_classification,
-            "reply_temperature": config.temperature_reply,
-            "classification_max_tokens": 256, # as hardcoded for Groq
-            "reply_max_tokens": config.max_reply_tokens,
+            "temperature": config.temperature,
             "python_version": platform.python_version(),
             "langchain_version": importlib.metadata.version('langchain'),
             "status": "COMPLETED"

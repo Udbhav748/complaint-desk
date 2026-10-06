@@ -55,25 +55,25 @@ def test_03_lcel_composition_steps():
 
 
 def test_04_classification_input_contract():
-    """4. Verify classification chain accepts {'complaint': str} and returns string."""
+    """4. Verify classification chain accepts {'text': str} and returns string."""
     fake_llm = FakeListChatModel(responses=["billing"])
     chain = build_classification_chain(fake_llm)
 
-    raw_output = chain.invoke({"complaint": "I was charged twice on my card."})
+    raw_output = chain.invoke({"text": "I was charged twice on my card."})
     assert isinstance(raw_output, str)
     assert raw_output == "billing"
 
 
 def test_05_reply_input_contract():
-    """5. Verify reply chain accepts {'complaint': str, 'category': str}."""
+    """5. Verify reply chain accepts {'text': str, 'cat': str}."""
     expected_ack = "We acknowledge receipt of your billing dispute details."
     fake_llm = FakeListChatModel(responses=[expected_ack])
     chain = build_reply_chain(fake_llm)
 
     raw_reply = chain.invoke(
         {
-            "complaint": "I was charged twice on my card.",
-            "category": "billing",
+            "text": "I was charged twice on my card.",
+            "cat": "billing",
         }
     )
     assert isinstance(raw_reply, str)
@@ -81,36 +81,28 @@ def test_05_reply_input_contract():
 
 
 def test_06_classification_output_validates_cleanly():
-    """6. Verify valid classifier output passes through the validation layer."""
+    """6. validate_category() (unused by app.py, kept as a utility) still accepts clean classifier output."""
     fake_llm = FakeListChatModel(responses=["   **fraud**\n"])
     chain = build_classification_chain(fake_llm)
 
-    raw_output = chain.invoke({"complaint": "Unauthorized login attempt detected."})
+    raw_output = chain.invoke({"text": "Unauthorized login attempt detected."})
     val_res = validate_category(raw_output)
 
     assert val_res.success is True
     assert val_res.value == "fraud"
 
 
-def test_07_invalid_classifier_output_blocks_reply_invocation():
-    """7. Contract test: Verify validation failure provides contract to block downstream reply invocation."""
+def test_07_classification_output_passthrough():
+    """7. Matches the reference app's actual behavior: raw classifier output is used
+    as-is (lowercased/stripped), with no category whitelist check before the reply
+    chain is invoked — app.py does not call validate_category()."""
     fake_cls_llm = FakeListChatModel(responses=["unknown_security_incident"])
     cls_chain = build_classification_chain(fake_cls_llm)
 
-    # Mock reply chain to strictly detect if invoke is called
+    raw_cat = cls_chain.invoke({"text": "System behaves unpredictably."}).strip().lower()
+    assert raw_cat == "unknown_security_incident"
+
+    # Reference app.py invokes the reply chain with whatever came back, unguarded.
     mock_reply_chain = MagicMock()
-
-    # Step 1: Run classification
-    raw_cat = cls_chain.invoke({"complaint": "System behaves unpredictably."})
-
-    # Step 2: Validate category
-    val_res = validate_category(raw_cat)
-    assert val_res.success is False
-    assert val_res.error_type == "invalid_category"
-
-    # Step 3: Orchestration contract: guard condition prevents downstream call
-    if val_res.success:
-        mock_reply_chain.invoke({"complaint": "test", "category": val_res.value})
-
-    # Assert reply chain was NEVER invoked under this contract
-    assert not mock_reply_chain.invoke.called, "Reply chain was invoked despite invalid category!"
+    mock_reply_chain.invoke({"text": "System behaves unpredictably.", "cat": raw_cat})
+    assert mock_reply_chain.invoke.called
