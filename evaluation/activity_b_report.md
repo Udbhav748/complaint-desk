@@ -4,119 +4,63 @@ FWC Module 8 §18.2. Same ten frozen complaints (`evaluation/test_complaints.jso
 prompts from the handout's §18.1 snippet, one line changed between runs:
 
 ```python
-# Cloud
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
-# Local
-llm = ChatOllama(model="mistral", temperature=0.3)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)   # cloud
+llm = ChatOllama(model="mistral", temperature=0.3)        # local
 ```
 
-**Note on provider substitution:** the OpenAI run was attempted (`evaluation/run_eval_activity_b.py openai`)
-but the configured API key had no remaining credits (`HTTP 429 — "You have no credits remaining"`),
-so all 10 OpenAI calls failed before producing a single real completion — see
-`evaluation/activity_b_results_openai.json` for the raw error evidence. Rather than fabricate numbers,
-the cloud side of this comparison uses the **Groq-hosted `openai/gpt-oss-20b`** results from the
-Activity A benchmark (`evaluation/activity_a_results.json`, same 10 complaints, same cloud-API
-deployment model as OpenAI would represent) as the live cloud data point, with OpenAI's published
-`gpt-4o-mini` pricing used for the cost estimate below. The local run used `mistral:latest` (4.4GB,
-pulled via `ollama pull mistral`) on CPU, no GPU — see `evaluation/activity_b_results_ollama.json`.
+**Provider substitution note:** the live OpenAI run (`run_eval_activity_b.py openai`) failed on all
+10 calls with `HTTP 429 — "You have no credits remaining"` (raw evidence in
+`activity_b_results_openai.json`). The cloud data point below uses Activity A's existing
+**Groq `openai/gpt-oss-20b`** benchmark instead (same 10 complaints, same cloud-API deployment
+model), with OpenAI's published pricing used for the cost estimate. Local run: `mistral:latest`
+(4.4GB) via Ollama, CPU only.
 
 ## Reply Quality
 
-The **minimal reference prompt** from the handout (no guardrails, no negative constraints) produced
-clearly unsafe output on **both** providers when tested — this is a prompt-engineering problem, not a
-model problem. Representative Mistral outputs against this bare prompt:
+The bare reference prompt produced unsafe output — fabricated refunds, fake investigations, false
+routing claims (e.g. *"we will refund the excess amount of $45.00"*, *"we have initiated an
+investigation"*) — a prompt-engineering failure, not a model-specific one. Classification accuracy:
 
-- CMP-001: *"...we will ensure that the **appropriate adjustments are made to your account**."*
-- CMP-005: *"...we are currently rectifying this issue and **will refund the excess amount of $45.00** to your account."*
-- CMP-009: *"...we will **ensure that the deducted funds are refunded** to your checking account."*
-- CMP-003/007: *"we have **initiated an investigation**... taking **immediate steps to secure your account**."*
-
-Every one of these is exactly the class of fabricated-policy / false-promise / unverified-routing claim
-that Activity A's hardened prompt (`src/prompts.py`) explicitly forbids. This confirms the Activity A
-guardrail work was necessary, not cosmetic: an unguarded 2-line prompt is unsafe for a banking context
-regardless of which model sits behind it.
-
-Classification accuracy on the same 10 cases, bare prompt, temperature 0.3:
-
-| Provider / Model          | Correct | Notes |
-|----------------------------|---------|-------|
-| Groq `openai/gpt-oss-20b`  | 10/10   | Activity A hardened prompt (few-shot + disambiguation rule) |
-| Ollama `mistral` (local)   | 8/10    | Bare 1-line prompt; misclassified both `loan` cases as `app_issue` (CMP-002, CMP-006) |
-
-Mistral's two misses were both loan-related complaints (EMI auto-debit timing, mortgage refinancing
-status) — it defaulted to `app_issue` rather than reasoning about the loan-servicing context, something
-the Activity A prompt's explicit category definitions and few-shot examples correct for.
+| Provider / Model | Correct | Notes |
+|---|---|---|
+| Groq `openai/gpt-oss-20b` | 10/10 | Activity A hardened prompt |
+| Ollama `mistral` (local) | 8/10 | Bare prompt; missed both `loan` cases |
 
 ## Latency
 
-| Provider / Model          | Avg. total latency (classify + reply) |
-|----------------------------|----------------------------------------|
-| Groq `openai/gpt-oss-20b`  | **1,092 ms** |
+| Provider / Model | Avg. total latency |
+|---|---|
+| Groq `openai/gpt-oss-20b` | **1,092 ms** |
 | Ollama `mistral` (local, CPU) | **26,969 ms** (~27 s) |
 
-Groq's inference hardware (LPUs) makes cloud ~25× faster than unaccelerated local CPU inference here.
-A GPU-backed local deployment would close much of this gap, but this machine ran Mistral on CPU only.
+Groq's inference hardware makes cloud ~25× faster than unaccelerated local CPU inference.
 
-## Cost per 1,000 Requests (2 calls each: classify + reply)
+## Cost per 1,000 Requests (2 calls/complaint)
 
-| Provider / Model | Basis | Est. cost / 1,000 complaints |
-|---|---|---|
-| OpenAI `gpt-4o-mini` | Published pricing: $0.15/1M input, $0.60/1M output tokens; ~120 input + ~90 output tokens per call × 2 calls/complaint | **≈ $0.06–0.10** |
-| Groq `openai/gpt-oss-20b` | Pay-as-you-go Groq pricing, comparable token volume | **≈ $0.02–0.05** (free tier covers this benchmark entirely) |
-| Ollama `mistral` (local) | No per-token fee; cost is amortized hardware + electricity | **≈ $0** marginal, but requires owned/provisioned compute (a few hundred dollars of hardware or a GPU cloud instance if scaled) |
-
-At this low volume, cloud API cost is already negligible for a bank. The real cost difference only
-matters at scale: local inference trades near-zero marginal cost for the capital cost of compute
-capacity to hit cloud-grade latency.
+| Provider / Model | Est. cost / 1,000 complaints |
+|---|---|
+| OpenAI `gpt-4o-mini` (published pricing) | **≈ $0.06–0.10** |
+| Groq `openai/gpt-oss-20b` | **≈ $0.02–0.05** (free tier covers this benchmark) |
+| Ollama `mistral` (local) | **≈ $0** marginal — trades per-token cost for owned compute capacity |
 
 ## Data Privacy
 
-- **OpenAI / Groq (cloud)**: every complaint — which may contain account numbers, transaction amounts,
-  partial PII — leaves the bank's infrastructure and is sent to a third-party processor. This requires a
-  signed data-processing agreement, is subject to the provider's retention/training policies (OpenAI and
-  Groq both state API data isn't used for training by default, but it still transits and is logged on
-  third-party infrastructure), and raises data-residency questions for regulated financial data.
-- **Ollama (local)**: the complaint text never leaves the machine running the model. No third-party
-  logging, no data-processing agreement needed, no cross-border transfer question. This is the
-  meaningfully stronger posture for a regulated financial institution.
+- **Cloud (OpenAI/Groq)**: complaint text — possibly containing account numbers or PII — leaves the
+  bank's infrastructure to a third party, requiring a data-processing agreement and raising
+  data-residency questions.
+- **Local (Ollama)**: complaint text never leaves the machine. No third-party logging, no DPA, no
+  cross-border transfer question — the stronger posture for regulated financial data.
 
-## Follow-up: Does the Hardened Prompt Fix It on Mistral Too?
-
-The findings above used the handout's *bare* reference prompt on both providers, specifically to
-isolate the prompt's effect from the model's effect. A natural follow-up: if Mistral gets Activity A's
-actual hardened prompt (`src/prompts.py` — few-shot examples, disambiguation rule, explicit forbidden-phrase
-guardrails) instead of the bare one, does it match Groq's behavior?
-
-Re-ran the same 10 complaints, same `mistral` model, swapping in the hardened prompt
-(`evaluation/run_eval_activity_b_hardened.py`):
-
-| Metric | Bare prompt | Hardened prompt |
-|---|---|---|
-| Classification accuracy | 8/10 | 8/10 (same score, different misses — fixed CMP-002, newly missed CMP-010) |
-| Replies with guardrail-violating phrases | Several (forwarding/refund/investigation claims) | **0/10 — fully clean** |
-| Avg. total latency | ~27.0 s | ~34.1 s (longer prompt → more tokens to process) |
-
-**The guardrails work on a local model too** — the forbidden-phrase instructions and few-shot structure
-eliminated every unsafe claim (false refunds, false investigations, false routing) in this run, matching
-Groq's clean output. That part of Activity A's prompt engineering is portable across providers, not an
-artifact of one model's instruction-following.
-
-**Classification accuracy did not improve, and the error pattern shifted rather than shrank**: Mistral
-still missed 2/10 cases, but a different 2. It correctly caught `loan` on CMP-002 after the fix (the EMI
-auto-debit case) but now missed `billing` on CMP-010 (a late-fee dispute), and still missed `loan` on
-CMP-006 (mortgage refinancing status) — both times defaulting to `app_issue` on complaints that mention a
-stuck "status portal" or "payment," suggesting a smaller model's category boundaries are less robust to
-the same few-shot prompt that gets Groq's larger model to 10/10. This is a **model-capability gap**, not a
-prompt-engineering gap — the full raw outputs are in `evaluation/activity_b_results_ollama_hardened.json`.
+> **Follow-up**: does hardening the prompt fix Mistral's unsafe-output problem? Yes — see
+> [`activity_b_followup.md`](activity_b_followup.md) for the full re-run (spoiler: guardrail
+> violations drop to 0/10, but classification accuracy stays at 8/10 — a model-capability gap, not
+> a prompt gap).
 
 ## Verdict
 
-**Which would you ship for a bank, and why?** Ship the cloud API (Groq/OpenAI-class) for the customer-facing
-acknowledgement feature today, because the 27–34-second local latency is unacceptable in a live chat
-interface and the hardened-prompt accuracy gap (10/10 vs 8/10, confirmed even after giving Mistral the same
-guardrailed prompt) is a real model-capability gap, not a fixable prompt issue. Always ship the hardened
-prompt, never the bare reference one — the follow-up test shows it reliably eliminates unsafe false-promise
-and false-investigation claims regardless of provider, so that part is non-negotiable either way. Reserve a
-local model like Mistral for an internal, latency-tolerant, privacy-sensitive workflow (e.g., offline batch
-classification of archived complaints) where the data-residency win outweighs both the latency cost and the
-accuracy gap.
+**Which would you ship for a bank, and why?** Ship the cloud API today — 27-second local latency is
+unacceptable for a live chat interface, and the 10/10-vs-8/10 accuracy gap persists even with the
+same hardened, guardrailed prompt on both. Always use the hardened prompt regardless of provider,
+since the bare reference prompt is unsafe on either one. Reserve a local model like Mistral for an
+internal, latency-tolerant, privacy-sensitive workflow where data residency outweighs both latency
+and accuracy.
