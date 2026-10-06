@@ -1,0 +1,137 @@
+{
+  "evaluation": {
+    "name": "FWC Module 8 Activity B - OpenAI vs Ollama swap",
+    "dataset": "evaluation/test_complaints.json",
+    "cases": 10,
+    "executed_at": "2026-10-06T18:13:26Z",
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "temperature": 0.3,
+    "accuracy": "0/10",
+    "avg_total_latency_ms": 4750.3,
+    "python_version": "3.13.9",
+    "langchain_version": "1.4.2"
+  },
+  "results": [
+    {
+      "id": "CMP-001",
+      "complaint": "I was charged twice for my monthly premium subscription on September 15th. My bank statement shows two identical deductions of $29.99 for the same account.",
+      "expected_category": "billing",
+      "actual_category_raw": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "actual_category": "unclassified",
+      "classification_correct": false,
+      "classification_latency_ms": 4472.2,
+      "reply": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "reply_latency_ms": 3080.9,
+      "total_latency_ms": 7553.2
+    },
+    {
+      "id": "CMP-002",
+      "complaint": "My monthly personal loan EMI of $420 was auto-debited from my checking account two days prior to the agreed schedule date of the 1st, triggering an unexpected overdraft penalty.",
+      "expected_category": "loan",
+      "actual_category_raw": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "actual_category": "unclassified",
+      "classification_correct": false,
+      "classification_latency_ms": 2039.9,
+      "reply": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "reply_latency_ms": 2521.0,
+      "total_latency_ms": 4560.9
+    },
+    {
+      "id": "CMP-003",
+      "complaint": "I received an unprompted SMS containing an OTP for a $500 wire transfer that I never initiated or authorized. Someone is actively trying to breach my account.",
+      "expected_category": "fraud",
+      "actual_category_raw": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "actual_category": "unclassified",
+      "classification_correct": false,
+      "classification_latency_ms": 2514.4,
+      "reply": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "reply_latency_ms": 2128.8,
+      "total_latency_ms": 4643.2
+    },
+    {
+      "id": "CMP-004",
+      "complaint": "Every time I open the mobile app and authenticate using Face ID biometric login, the screen flickers once and crashes back to the iOS home screen.",
+      "expected_category": "app_issue",
+      "actual_category_raw": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "actual_category": "unclassified",
+      "classification_correct": false,
+      "classification_latency_ms": 2118.4,
+      "reply": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "reply_latency_ms": 2712.9,
+      "total_latency_ms": 4831.2
+    },
+    {
+      "id": "CMP-005",
+      "complaint": "I cancelled my auto-renewing membership plan last month and received confirmation email #88412, yet your system billed me another $45.00 this morning.",
+      "expected_category": "billing",
+      "actual_category_raw": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "actual_category": "unclassified",
+      "classification_correct": false,
+      "classification_latency_ms": 2221.6,
+      "reply": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "reply_latency_ms": 2199.2,
+      "total_latency_ms": 4420.8
+    },
+    {
+      "id": "CMP-006",
+      "complaint": "I submitted all requested proof of income documents for my mortgage refinancing application over seven weeks ago, but the status portal is still stuck on pending initial review.",
+      "expected_category": "loan",
+      "actual_category_raw": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "actual_category": "unclassified",
+      "classification_correct": false,
+      "classification_latency_ms": 2169.5,
+      "reply": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "reply_latency_ms": 2165.2,
+      "total_latency_ms": 4334.7
+    },
+    {
+      "id": "CMP-007",
+      "complaint": "Someone changed my online banking password and updated the two-factor recovery email to a suspicious domain at 3 AM without my knowledge or consent.",
+      "expected_category": "fraud",
+      "actual_category_raw": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "actual_category": "unclassified",
+      "classification_correct": false,
+      "classification_latency_ms": 2055.1,
+      "reply": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "reply_latency_ms": 2220.9,
+      "total_latency_ms": 4276.0
+    },
+    {
+      "id": "CMP-008",
+      "complaint": "When I click on the statement history tab in the customer portal, the page displays an endless loading spinner and eventually crashes with client error code ERR_HTTP2_PROTOCOL_ERROR.",
+      "expected_category": "app_issue",
+      "actual_category_raw": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "actual_category": "unclassified",
+      "classification_correct": false,
+      "classification_latency_ms": 2012.1,
+      "reply": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "reply_latency_ms": 2197.9,
+      "total_latency_ms": 4210.0
+    },
+    {
+      "id": "CMP-009",
+      "complaint": "The mobile app completely froze while I was submitting my electricity bill payment; money was deducted from my checking account, but the utility provider still shows the bill as unpaid.",
+      "expected_category": "app_issue",
+      "actual_category_raw": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "actual_category": "unclassified",
+      "classification_correct": false,
+      "classification_latency_ms": 2215.3,
+      "reply": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "reply_latency_ms": 2284.7,
+      "total_latency_ms": 4500.0
+    },
+    {
+      "id": "CMP-010",
+      "complaint": "I was charged a $35 late payment fee even though I scheduled the transfer prior to the 5 PM Friday cutoff, because the bank holiday delayed clearing until Tuesday morning.",
+      "expected_category": "billing",
+      "actual_category_raw": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "actual_category": "unclassified",
+      "classification_correct": false,
+      "classification_latency_ms": 1936.1,
+      "reply": "ERROR: Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}",
+      "reply_latency_ms": 2237.1,
+      "total_latency_ms": 4173.2
+    }
+  ]
+}

@@ -12,9 +12,7 @@ A deterministic two-chain LangChain application for customer complaint classific
 - The frozen 10-complaint benchmark was executed and analyzed against the live API.
 - Zero code changes are required to switch providers (managed entirely via `.env`).
 - **Deployed and live** on AWS EC2: [http://65.1.106.51:8501](http://65.1.106.51:8501).
-
-**FUTURE:**
-- The application is prepared for Activity B (local model integration).
+- **Activity B (OpenAI ↔ Ollama swap) complete**: see [`evaluation/activity_b_report.md`](evaluation/activity_b_report.md) for the full comparison (reply quality, latency, cost, data privacy, and verdict).
 
 ---
 
@@ -147,7 +145,7 @@ def get_chat_model(
     )
 ```
 
-In Activity B, switching to a local Ollama model (`ChatOllama(model="mistral", temperature=0.3)`) requires modifying only the model factory configuration without altering prompt templates, chain structure, or UI orchestration.
+For Activity B, the local-model swap (`ChatOllama(model="mistral", temperature=0.3)`) was benchmarked separately in [`evaluation/run_eval_activity_b.py`](evaluation/run_eval_activity_b.py) against the handout's literal reference prompt (not this app's hardened production prompt), to keep the OpenAI-vs-Ollama comparison a true one-line, apples-to-apples swap. See [`evaluation/activity_b_report.md`](evaluation/activity_b_report.md) for results.
 
 ---
 
@@ -519,9 +517,15 @@ Captured directly against the live EC2 URL above, exercising every supported cat
 - **In-Memory Session Persistence**: Conversation history is stored in Streamlit `session_state`, which resets upon browser refresh or session termination.
 - **Closed Taxonomy**: Complaints that fall completely outside the four financial domains are rejected by design rather than directed to a human fallback queue.
 
-### Activity B Preparation
-- The decoupled `BaseChatModel` factory enables dropping in a local Ollama model (`ChatOllama`) without altering prompt templates, chain structure, or UI orchestration.
-- The frozen evaluation benchmark and automated test suite are already prepared to directly compare Activity B's local model against the current Activity A metrics.
+### Activity B — OpenAI ↔ Ollama Swap
+
+Completed. The handout's literal one-line swap (`ChatOpenAI(...)` → `ChatOllama(model="mistral", temperature=0.3)`) was benchmarked against the same frozen 10-complaint dataset used for Activity A. Full results — reply quality, latency, cost per 1,000 requests, data privacy, and a shipping recommendation — are in [`evaluation/activity_b_report.md`](evaluation/activity_b_report.md).
+
+Key findings:
+- The bare reference prompt (no guardrails) produced unsafe false-promise/false-investigation claims on **both** providers — confirming Activity A's hardened prompt work was necessary, not cosmetic.
+- Classification: Groq cloud (hardened prompt) 10/10 vs. local Mistral (bare prompt) 8/10 — Mistral missed both `loan` cases.
+- Latency: cloud ~1.1s vs. local CPU inference ~27s per complaint.
+- The OpenAI side of the live run hit an out-of-credits API error; the cloud comparison point uses the existing Groq benchmark data instead, with OpenAI's published pricing used for the cost estimate. See the report for full details and the raw error evidence.
 
 ---
 

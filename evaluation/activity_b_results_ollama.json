@@ -1,0 +1,137 @@
+{
+  "evaluation": {
+    "name": "FWC Module 8 Activity B - OpenAI vs Ollama swap",
+    "dataset": "evaluation/test_complaints.json",
+    "cases": 10,
+    "executed_at": "2026-10-06T18:12:18Z",
+    "provider": "ollama",
+    "model": "mistral",
+    "temperature": 0.3,
+    "accuracy": "8/10",
+    "avg_total_latency_ms": 26969.4,
+    "python_version": "3.13.9",
+    "langchain_version": "1.4.2"
+  },
+  "results": [
+    {
+      "id": "CMP-001",
+      "complaint": "I was charged twice for my monthly premium subscription on September 15th. My bank statement shows two identical deductions of $29.99 for the same account.",
+      "expected_category": "billing",
+      "actual_category_raw": " Billing",
+      "actual_category": "billing",
+      "classification_correct": true,
+      "classification_latency_ms": 62083.6,
+      "reply": " Dear Valued Customer,\n\nThank you for bringing this matter to our attention. We apologize for the inconvenience caused by the double billing on September 15th. Our team is currently investigating this issue and we will ensure that the appropriate adjustments are made to your account. We appreciate your patience and understanding in this matter.\n\nBest Regards,\nXYZ Finance Team",
+      "reply_latency_ms": 15608.6,
+      "total_latency_ms": 77692.2
+    },
+    {
+      "id": "CMP-002",
+      "complaint": "My monthly personal loan EMI of $420 was auto-debited from my checking account two days prior to the agreed schedule date of the 1st, triggering an unexpected overdraft penalty.",
+      "expected_category": "loan",
+      "actual_category_raw": " App_issue",
+      "actual_category": "app_issue",
+      "classification_correct": false,
+      "classification_latency_ms": 2614.2,
+      "reply": " Dear Valued Customer,\n\nThank you for bringing the issue regarding your monthly personal loan EMI to our attention. We apologize for the inconvenience caused by the early auto-debit, which resulted in an unexpected overdraft penalty. We are currently investigating this matter and will make every effort to rectify the situation promptly. We appreciate your patience and understanding.\n\nBest Regards,\nXYZ Finance Team",
+      "reply_latency_ms": 16775.2,
+      "total_latency_ms": 19389.5
+    },
+    {
+      "id": "CMP-003",
+      "complaint": "I received an unprompted SMS containing an OTP for a $500 wire transfer that I never initiated or authorized. Someone is actively trying to breach my account.",
+      "expected_category": "fraud",
+      "actual_category_raw": " Fraud",
+      "actual_category": "fraud",
+      "classification_correct": true,
+      "classification_latency_ms": 2908.2,
+      "reply": " Dear Valued Customer,\n\nThank you for bringing this matter to our attention. We're deeply concerned about the unauthorized SMS you received regarding a $500 wire transfer. We take the security of your account seriously and are taking immediate steps to secure your account. We appreciate your vigilance and are committed to resolving this issue promptly.\n\nBest Regards,\nXYZ Finance Team",
+      "reply_latency_ms": 18350.8,
+      "total_latency_ms": 21259.0
+    },
+    {
+      "id": "CMP-004",
+      "complaint": "Every time I open the mobile app and authenticate using Face ID biometric login, the screen flickers once and crashes back to the iOS home screen.",
+      "expected_category": "app_issue",
+      "actual_category_raw": " app_issue",
+      "actual_category": "app_issue",
+      "classification_correct": true,
+      "classification_latency_ms": 2983.4,
+      "reply": " Dear Valued Customer,\n\nThank you for bringing this issue to our attention regarding the flickering and crashing of our mobile app upon Face ID authentication. We sincerely apologize for any inconvenience this may have caused. Our team is currently investigating this matter and we will do our best to resolve it as quickly as possible. In the meantime, please try using the app with a different authentication method if available. We appreciate your patience and understanding.\n\nBest Regards,\nXYZ Finance Team",
+      "reply_latency_ms": 21606.2,
+      "total_latency_ms": 24589.6
+    },
+    {
+      "id": "CMP-005",
+      "complaint": "I cancelled my auto-renewing membership plan last month and received confirmation email #88412, yet your system billed me another $45.00 this morning.",
+      "expected_category": "billing",
+      "actual_category_raw": " billing",
+      "actual_category": "billing",
+      "classification_correct": true,
+      "classification_latency_ms": 2215.3,
+      "reply": " Dear Valued Customer,\n\nThank you for bringing this matter to our attention. We sincerely apologize for the inconvenience caused due to the unexpected billing. Upon review, it appears there was an oversight in processing your cancellation request. We are currently rectifying this issue and will refund the excess amount of $45.00 to your account. Please accept our apologies for any inconvenience this may have caused.\n\nBest Regards,\nXYZ Finance Team.",
+      "reply_latency_ms": 20047.4,
+      "total_latency_ms": 22262.6
+    },
+    {
+      "id": "CMP-006",
+      "complaint": "I submitted all requested proof of income documents for my mortgage refinancing application over seven weeks ago, but the status portal is still stuck on pending initial review.",
+      "expected_category": "loan",
+      "actual_category_raw": " app_issue",
+      "actual_category": "app_issue",
+      "classification_correct": false,
+      "classification_latency_ms": 2179.7,
+      "reply": " Dear Valued Customer,\n\nThank you for reaching out regarding the status of your mortgage refinancing application. We appreciate your patience as we work diligently to process your request. We have received your proof of income documents and are currently in the process of reviewing them. We apologize for any inconvenience this may have caused and will keep you updated on the progress.\n\nBest Regards,\nXYZ Finance Team",
+      "reply_latency_ms": 16916.0,
+      "total_latency_ms": 19095.7
+    },
+    {
+      "id": "CMP-007",
+      "complaint": "Someone changed my online banking password and updated the two-factor recovery email to a suspicious domain at 3 AM without my knowledge or consent.",
+      "expected_category": "fraud",
+      "actual_category_raw": " Fraud",
+      "actual_category": "fraud",
+      "classification_correct": true,
+      "classification_latency_ms": 2097.1,
+      "reply": " Dear Valued Customer,\n\nThank you for bringing this matter to our attention. We take the security of your account seriously. Upon receiving your complaint, we have initiated an investigation into the unauthorized access to your account. Rest assured, we are taking immediate steps to secure your account and protect your information. We appreciate your patience and cooperation during this process.\n\nBest Regards,\n\nXYZ Finance Team",
+      "reply_latency_ms": 16637.2,
+      "total_latency_ms": 18734.3
+    },
+    {
+      "id": "CMP-008",
+      "complaint": "When I click on the statement history tab in the customer portal, the page displays an endless loading spinner and eventually crashes with client error code ERR_HTTP2_PROTOCOL_ERROR.",
+      "expected_category": "app_issue",
+      "actual_category_raw": " app_issue",
+      "actual_category": "app_issue",
+      "classification_correct": true,
+      "classification_latency_ms": 2809.2,
+      "reply": " Dear Valued Customer,\n\nThank you for bringing the issue regarding the customer portal to our attention. We're sorry to hear that you've been experiencing difficulties with the statement history tab, specifically the endless loading spinner and the ERR_HTTP2_PROTOCOL_ERROR. Our team is currently investigating this matter and we appreciate your patience as we work diligently to resolve this issue. We will keep you updated on our progress.\n\nBest Regards,\nXYZ Finance Team",
+      "reply_latency_ms": 24350.8,
+      "total_latency_ms": 27160.0
+    },
+    {
+      "id": "CMP-009",
+      "complaint": "The mobile app completely froze while I was submitting my electricity bill payment; money was deducted from my checking account, but the utility provider still shows the bill as unpaid.",
+      "expected_category": "app_issue",
+      "actual_category_raw": " app_issue",
+      "actual_category": "app_issue",
+      "classification_correct": true,
+      "classification_latency_ms": 2648.1,
+      "reply": " Dear Valued Customer,\n\nThank you for bringing this issue to our attention regarding the freezing of our mobile app during your electricity bill payment. We sincerely apologize for the inconvenience this has caused. Our team is currently investigating the matter, and we will ensure that the deducted funds are refunded to your checking account as soon as possible. We appreciate your patience and understanding in this matter.\n\nBest Regards,\nXYZ Finance Team",
+      "reply_latency_ms": 18093.9,
+      "total_latency_ms": 20742.0
+    },
+    {
+      "id": "CMP-010",
+      "complaint": "I was charged a $35 late payment fee even though I scheduled the transfer prior to the 5 PM Friday cutoff, because the bank holiday delayed clearing until Tuesday morning.",
+      "expected_category": "billing",
+      "actual_category_raw": " billing",
+      "actual_category": "billing",
+      "classification_correct": true,
+      "classification_latency_ms": 1901.4,
+      "reply": " Dear Valued Customer,\n\nWe sincerely apologize for the inconvenience caused by the late payment fee on your account. Although the transfer was scheduled prior to the 5 PM Friday cutoff, the bank holiday delayed the clearing process until Tuesday morning, resulting in the late fee. We appreciate your understanding and assure you that we are taking steps to prevent such occurrences in the future.\n\nBest Regards,\nXYZ Finance Team",
+      "reply_latency_ms": 16867.6,
+      "total_latency_ms": 18769.0
+    }
+  ]
+}

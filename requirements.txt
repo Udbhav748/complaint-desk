@@ -3,6 +3,9 @@ langchain==1.4.2
 langchain-core==1.6.3
 langchain-openai==1.6.2
 
+# Activity B — local model (Ollama) support
+langchain-ollama==1.1.0
+
 # Web Application Framework
 streamlit==1.64.0
 
