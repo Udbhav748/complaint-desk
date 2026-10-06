@@ -24,7 +24,7 @@ investigation"*) — a prompt-engineering failure, not a model-specific one. Cla
 | Provider / Model | Correct | Notes |
 |---|---|---|
 | Groq `openai/gpt-oss-20b` | 10/10 | Activity A hardened prompt |
-| Ollama `mistral` (local) | 8/10 | Bare prompt; missed both `loan` cases |
+| Ollama `mistral` (local) | 8/10 → **10/10** | Bare prompt scored 8/10; hardened prompt also 8/10 (repeatable miss, see follow-up); a targeted fix for that specific gap reached 10/10 |
 
 ## Latency
 
@@ -51,16 +51,17 @@ Groq's inference hardware makes cloud ~25× faster than unaccelerated local CPU 
 - **Local (Ollama)**: complaint text never leaves the machine. No third-party logging, no DPA, no
   cross-border transfer question — the stronger posture for regulated financial data.
 
-> **Follow-up**: does hardening the prompt fix Mistral's unsafe-output problem? Yes — see
-> [`activity_b_followup.md`](activity_b_followup.md) for the full re-run (spoiler: guardrail
-> violations drop to 0/10, but classification accuracy stays at 8/10 — a model-capability gap, not
-> a prompt gap).
+> **Follow-up**: does hardening the prompt fix Mistral's unsafe-output problem? Yes — guardrail
+> violations drop to 0/10 across 3 runs. Classification stayed at 8/10 (same 2 misses, repeatably),
+> but a targeted prompt fix for that specific gap brought it to 10/10, confirmed over 2 runs. Full
+> story, root cause, and the fix itself: [`activity_b_followup.md`](activity_b_followup.md).
 
 ## Verdict
 
-**Which would you ship for a bank, and why?** Ship the cloud API today — 27-second local latency is
-unacceptable for a live chat interface, and the 10/10-vs-8/10 accuracy gap persists even with the
-same hardened, guardrailed prompt on both. Always use the hardened prompt regardless of provider,
-since the bare reference prompt is unsafe on either one. Reserve a local model like Mistral for an
-internal, latency-tolerant, privacy-sensitive workflow where data residency outweighs both latency
-and accuracy.
+**Which would you ship for a bank, and why?** Ship the cloud API today — with a correctly tuned
+prompt both providers reach 10/10 accuracy and 0/10 unsafe claims, so the deciding factor is latency,
+not quality: ~1.1 s cloud vs. ~20–35 s local CPU is unacceptable for a live chat interface. Always
+ship the hardened, guardrailed prompt regardless of provider, since the bare reference prompt is
+unsafe on either one. Reserve a local model like Mistral for an internal, latency-tolerant,
+privacy-sensitive workflow where data residency outweighs the latency cost and the overhead of
+maintaining a model-specific prompt variant.

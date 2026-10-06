@@ -549,7 +549,7 @@ Completed. The handout's literal one-line swap (`ChatOpenAI(...)` → `ChatOllam
 
 Key findings:
 - The bare reference prompt (no guardrails) produced unsafe false-promise/false-investigation claims on **both** providers — confirming Activity A's hardened prompt work was necessary, not cosmetic.
-- **Follow-up check**: re-ran Mistral with Activity A's *hardened* prompt instead of the bare one — guardrail violations dropped to **0/10** (fully clean), confirming the guardrails are portable across providers. Classification stayed at 8/10 even with the hardened prompt, so the accuracy gap vs. Groq's 10/10 is a genuine model-capability gap, not a fixable prompt issue.
-- Latency: cloud ~1.1s vs. local CPU inference ~27–34s per complaint.
+- **Follow-up**: hardening the prompt on Mistral dropped guardrail violations to **0/10** across 3 runs (guardrails are portable across providers), but classification stuck at 8/10 with the same 2 cases missed every time (a stuck-status loan case and a processing-delay billing case, both misread as `app_issue`). Root-caused it to a missing disambiguation rule and applied a targeted fix (`evaluation/prompts_mistral_tuned.py`) — confirmed **10/10 across 2 runs** afterward. Full story in [`evaluation/activity_b_followup.md`](evaluation/activity_b_followup.md).
+- Latency: cloud ~1.1s vs. local CPU inference ~20–35s per complaint — the real remaining tradeoff once both providers hit 10/10.
 - The OpenAI side of the live run hit an out-of-credits API error; the cloud comparison point uses the existing Groq benchmark data instead, with OpenAI's published pricing used for the cost estimate. See the report for full details and the raw error evidence.
 

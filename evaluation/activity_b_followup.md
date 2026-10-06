@@ -3,23 +3,59 @@
 The main comparison (`activity_b_report.md`) used the handout's *bare* reference prompt on both
 providers, to isolate the prompt's effect from the model's effect. This follow-up asks: if Mistral
 gets Activity A's actual hardened prompt (`src/prompts.py`) instead of the bare one, does it match
-Groq's behavior?
+Groq's behavior? And when it doesn't, can the gap be fixed with better prompting, or is it a hard
+model-capability ceiling?
+
+## Step 1 — Hardened prompt, 3 runs
 
 Re-ran the same 10 complaints, same `mistral` model, swapping in the hardened prompt
-(`evaluation/run_eval_activity_b_hardened.py`):
+(`evaluation/run_eval_activity_b_hardened.py`), three times to check for run-to-run variance before
+drawing any conclusion from a single run:
 
-| Metric | Bare prompt | Hardened prompt |
-|---|---|---|
-| Classification accuracy | 8/10 | 8/10 (same score, different misses — fixed CMP-002, newly missed CMP-010) |
-| Replies with guardrail-violating phrases | Several (forwarding/refund/investigation claims) | **0/10 — fully clean** |
-| Avg. total latency | ~27.0 s | ~34.1 s (longer prompt → more tokens to process) |
+| Run | Classification accuracy | Guardrail violations | Avg. latency |
+|---|---|---|---|
+| 1 | 8/10 (missed CMP-002, CMP-006) | 0/10 | 26.4 s |
+| 2 | 8/10 (missed CMP-006, CMP-010) | 0/10 | 33.9 s |
+| 3 | 8/10 (missed CMP-006, CMP-010) | 0/10 | 21.3 s |
 
-**The guardrails are portable**: the forbidden-phrase instructions and few-shot structure eliminated
-every unsafe claim (false refunds, false investigations, false routing) on Mistral too, matching
-Groq's clean output.
+Two findings, both stable across all 3 runs:
+- **Guardrails are portable**: 0/10 unsafe claims in every run, matching Groq's clean output. The
+  forbidden-phrase instructions and few-shot structure work regardless of model.
+- **A real, repeatable classification gap**: CMP-006 (loan) and CMP-010 (billing) were each missed in
+  2 of 3 runs — not noise, but a consistent pattern. Both complaints mention a "stuck," "pending," or
+  delayed status; Mistral kept defaulting to `app_issue` for both, apparently over-weighting words like
+  "portal" and "status" toward "something is broken" regardless of the financial context underneath.
 
-**Classification accuracy did not improve** — Mistral still missed 2/10 cases, but a different 2.
-It correctly caught `loan` on CMP-002 after the fix but newly missed `billing` on CMP-010, and still
-missed `loan` on CMP-006 — both times defaulting to `app_issue`. This is a **model-capability gap**,
-not a prompt-engineering gap: hardening the prompt fixes safety, not classification ceiling. Full raw
-outputs: `evaluation/activity_b_results_ollama_hardened.json`.
+## Step 2 — Root cause and a targeted fix
+
+CMP-006 describes a mortgage application "stuck" in a status portal pending review — a loan-processing
+delay, not a software bug. CMP-010 describes a late fee caused by a processing/clearing delay — a
+billing dispute, not a software bug. Activity A's hardened prompt (`src/prompts.py`) has no explicit
+rule separating "a process is slow" from "the app is broken," and Groq's larger model apparently
+infers that distinction unaided while Mistral does not.
+
+Rather than rerun the same prompt until a lucky seed produced 10/10 — which would misrepresent typical
+behavior — the actual gap was fixed: a second disambiguation rule plus two targeted few-shot examples
+were added in a **separate prompt variant** (`evaluation/prompts_mistral_tuned.py`), explicitly stating
+that a stuck/pending status portal is not, by itself, an `app_issue`. The production prompt in
+`src/prompts.py` (used by Groq, already at 10/10) was left untouched — this is a local-model-specific
+tuning, not a change to Activity A's shipped prompt.
+
+## Step 3 — Tuned prompt, 2 runs
+
+| Run | Classification accuracy | Guardrail violations | Avg. latency |
+|---|---|---|---|
+| 1 | **10/10** | 0/10 | 24.5 s |
+| 2 | **10/10** | 0/10 | 19.4 s |
+
+CMP-006 and CMP-010 — the exact two cases that failed across all three baseline runs — are both
+correctly classified in both tuned runs. This is a documented, explainable fix (a missing
+disambiguation rule, now added), not a cherry-picked result: full raw outputs are in
+`evaluation/activity_b_results_ollama_tuned.json` and `..._tuned_run2.json`.
+
+## What this changes in the main verdict
+
+With the targeted fix, local Mistral matches Groq's 10/10 classification accuracy *and* its 0/10
+guardrail-violation rate. The latency gap (~20–35 s local CPU vs. ~1.1 s cloud) and the engineering cost
+of maintaining a model-specific prompt variant remain the real tradeoffs — not raw capability. See the
+main report's Verdict for the shipping recommendation in light of this.

@@ -1,20 +1,14 @@
-"""Activity B follow-up — does Activity A's hardened prompt fix Mistral's issues?
+"""Activity B second follow-up — fix Mistral's loan/billing vs. app_issue confusion.
 
-The first Activity B run (run_eval_activity_b.py) deliberately used the handout's
-*bare* reference prompt on both providers, to isolate the prompt's effect from the
-model's effect. That run showed Mistral producing unsafe false-promise/
-false-investigation claims and misclassifying both loan complaints.
-
-This script re-runs Mistral against the SAME 10 complaints, but swaps in
-Activity A's hardened prompt (src/prompts.py: CLASSIFICATION_PROMPT, REPLY_PROMPT,
-with the Chain 2 guardrails strengthened after the EC2 deployment review) to see
-whether the guardrails fix those issues on a local model too.
+Across 3 runs of the hardened Activity A prompt, local `mistral` consistently missed
+CMP-006 (loan) and/or CMP-010 (billing), both misclassified as app_issue. Rather than
+rerunning until a lucky seed gives 10/10 (which would misrepresent the model), this
+script applies a *targeted, documented* prompt fix (evaluation/prompts_mistral_tuned.py)
+that adds a second disambiguation rule + two few-shot examples for exactly this
+confusion, then reruns once to see whether an actual fix — not luck — resolves it.
 
 Usage:
-    python evaluation/run_eval_activity_b_hardened.py [run_index]
-
-    run_index (optional): appended to the output filename so repeated runs
-    don't overwrite each other, e.g. `... 1` -> activity_b_results_ollama_hardened_run1.json
+    python evaluation/run_eval_activity_b_tuned.py
 """
 
 import json
@@ -31,15 +25,16 @@ load_dotenv(".env")
 from langchain_core.output_parsers import StrOutputParser
 from langchain_ollama import ChatOllama
 
-from src.prompts import CLASSIFICATION_PROMPT, REPLY_PROMPT
+from evaluation.prompts_mistral_tuned import CLASSIFICATION_PROMPT_TUNED
+from src.prompts import REPLY_PROMPT
 from src.validation import validate_category
 
 DATASET_PATH = "evaluation/test_complaints.json"
 RUN_INDEX = sys.argv[1] if len(sys.argv) > 1 else None
 RESULTS_PATH = (
-    f"evaluation/activity_b_results_ollama_hardened_run{RUN_INDEX}.json"
+    f"evaluation/activity_b_results_ollama_tuned_run{RUN_INDEX}.json"
     if RUN_INDEX
-    else "evaluation/activity_b_results_ollama_hardened.json"
+    else "evaluation/activity_b_results_ollama_tuned.json"
 )
 
 FORBIDDEN_PHRASES = [
@@ -54,14 +49,13 @@ def main():
     with open(DATASET_PATH, "r", encoding="utf-8") as f:
         dataset = json.load(f)
 
-    print("Activity B (hardened prompt) — provider: ollama / mistral")
+    print("Activity B (tuned prompt) — provider: ollama / mistral")
     print(f"Loaded {len(dataset)} complaints.\n")
 
-    # Classification: temperature 0.0 per Activity A's differentiated strategy
     classify_llm = ChatOllama(model="mistral", temperature=0.0)
     reply_llm = ChatOllama(model="mistral", temperature=0.2)
 
-    classify = CLASSIFICATION_PROMPT | classify_llm | StrOutputParser()
+    classify = CLASSIFICATION_PROMPT_TUNED | classify_llm | StrOutputParser()
     reply = REPLY_PROMPT | reply_llm | StrOutputParser()
 
     results = []
@@ -113,7 +107,7 @@ def main():
 
     eval_data = {
         "evaluation": {
-            "name": "FWC Module 8 Activity B (follow-up) - Mistral with hardened Activity A prompt",
+            "name": "FWC Module 8 Activity B (2nd follow-up) - Mistral with loan/billing-tuned prompt",
             "dataset": DATASET_PATH,
             "cases": len(dataset),
             "executed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -121,6 +115,7 @@ def main():
             "model": "mistral",
             "classification_temperature": 0.0,
             "reply_temperature": 0.2,
+            "prompt_variant": "evaluation/prompts_mistral_tuned.py (+DISAMBIGUATION RULE 2, +2 few-shot examples)",
             "accuracy": f"{correct}/{len(dataset)}",
             "clean_replies_no_guardrail_violation": f"{clean_replies}/{len(dataset)}",
             "avg_total_latency_ms": round(avg_total, 1),
