@@ -1,18 +1,44 @@
-# Complaint Desk
+<div align="center">
 
-A deterministic two-chain LangChain application for customer complaint classification and controlled acknowledgement generation, built with Streamlit for FWC AI/ML Training Module 8 (Activity A).
+# 📋 Complaint Desk
+
+**A deterministic two-chain LangChain application for customer complaint classification and controlled acknowledgement generation.**
+
+Built with Streamlit for FWC AI/ML Training Module 8 — Activity A & Activity B.
+
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen?style=for-the-badge)](http://65.1.106.51:8501)
+[![Python](https://img.shields.io/badge/python-3.13-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![LangChain](https://img.shields.io/badge/LangChain-LCEL-1C3C3C?style=for-the-badge)](https://python.langchain.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-UI-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Docker](https://img.shields.io/badge/Docker-deployed-2496ED?style=for-the-badge&logo=docker&logoColor=white)](Dockerfile)
+[![Tests](https://img.shields.io/badge/tests-37%20passing-success?style=for-the-badge)](tests/)
+
+**[🚀 Try the live app](http://65.1.106.51:8501)** · **[📊 Activity B comparison](evaluation/activity_b_report.md)** · **[🏗️ Architecture](#architecture)**
+
+</div>
+
+<br>
+
+<table>
+<tr>
+<td width="50%"><img src="screenshots/deployment/01_initial_load.png" alt="Complaint Desk empty state"></td>
+<td width="50%"><img src="screenshots/deployment/02_submitted_complaint.png" alt="Complaint Desk billing classification"></td>
+</tr>
+</table>
+
+<p align="center"><sub>Empty state (left) and a live billing complaint being classified and acknowledged (right). More screenshots in the <a href="#live-deployment-screenshots">deployment gallery</a> below.</sub></p>
 
 ---
 
 ## Project Status
 
-**CURRENT:**
-- The architecture is fully built and **tested offline** (via `FakeListChatModel`).
-- The application was empirically evaluated in Activity A using the **Groq / openai/gpt-oss-20b** configuration.
-- The frozen 10-complaint benchmark was executed and analyzed against the live API.
-- Zero code changes are required to switch providers (managed entirely via `.env`).
-- **Deployed and live** on AWS EC2: [http://65.1.106.51:8501](http://65.1.106.51:8501).
-- **Activity B (OpenAI ↔ Ollama swap) complete**: see [`evaluation/activity_b_report.md`](evaluation/activity_b_report.md) for the full comparison (reply quality, latency, cost, data privacy, and verdict).
+| | Status | Detail |
+|---|---|---|
+| ✅ | **Architecture built & tested offline** | Via `FakeListChatModel`, zero external calls |
+| ✅ | **Activity A empirically evaluated** | Frozen 10-complaint benchmark on **Groq / openai/gpt-oss-20b** |
+| ✅ | **Provider-agnostic** | Swap providers via `.env` — zero code changes |
+| ✅ | **Deployed and live** | AWS EC2 via Docker — [**http://65.1.106.51:8501**](http://65.1.106.51:8501) |
+| ✅ | **Activity B complete** | OpenAI ↔ Ollama/Mistral swap benchmarked — [full report](evaluation/activity_b_report.md) |
 
 ---
 
@@ -527,8 +553,3 @@ Key findings:
 - Latency: cloud ~1.1s vs. local CPU inference ~27s per complaint.
 - The OpenAI side of the live run hit an out-of-credits API error; the cloud comparison point uses the existing Groq benchmark data instead, with OpenAI's published pricing used for the cost estimate. See the report for full details and the raw error evidence.
 
----
-
-## License
-
-This project was developed for educational and training purposes as part of the FWC AI/ML Training Program (Module 8). All rights reserved.
