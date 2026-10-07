@@ -60,9 +60,10 @@ does not.
 Rather than rerun the same prompt until a lucky seed produced 10/10 — which would misrepresent typical
 behavior — the actual gap was fixed: a second disambiguation rule plus two targeted few-shot examples
 were added in a **separate prompt variant** (`prompts_mistral_tuned.py`), explicitly stating
-that a stuck/pending status portal is not, by itself, an `app_issue`. The hardened prompt itself
-(already at 10/10 on Groq) was left untouched — this is a local-model-specific tuning, not a change to
-the prompt being tested.
+that a stuck/pending status portal is not, by itself, an `app_issue`. The hardened prompt is
+preserved as a separate historical prompt variant and was not used in the final Activity A
+application or the baseline Groq-vs-Ollama comparison. The follow-up tuning is therefore an
+Ollama/Mistral-only experiment.
 
 ## Step 3 — Tuned prompt, 2 runs
 
