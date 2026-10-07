@@ -8,10 +8,21 @@
 > production.
 
 The main comparison (`report.md`) used the handout's *bare* reference prompt on both
-providers, to isolate the prompt's effect from the model's effect. This follow-up asks: if Mistral
-gets Activity A's then-production hardened prompt instead of the bare one, does it match Groq's
-behavior? And when it doesn't, can the gap be fixed with better prompting, or is it a hard
-model-capability ceiling?
+providers, to isolate the prompt's effect from the model's effect. This follow-up asks a separate
+question, scoped to Ollama/Mistral only: does swapping in Activity A's then-production hardened
+prompt improve Mistral's own results, and can a real classification gap be fixed with better
+prompting, or is it a hard model-capability ceiling? It is not a re-run of Groq and is not part of
+the baseline Groq-vs-Ollama comparison.
+
+| | Classification | Unsupported-claim violations |
+|---|---|---|
+| **Baseline** — Groq, bare prompt | 10/10 | 8/10 |
+| **Baseline** — Ollama, bare prompt | 8/10 | 8/10 |
+| **Follow-up** — Ollama, hardened prompt | 8/10 | 0/10 |
+| **Follow-up** — Ollama, tuned prompt | 10/10 | 0/10 |
+
+(Baseline rows are the measured results from `report.md`, repeated here only for reference — they
+were not re-run as part of this follow-up.)
 
 ## Step 1 — Hardened prompt, 3 runs
 
@@ -26,11 +37,12 @@ drawing any conclusion from a single run:
 | 3 | 8/10 (missed CMP-006, CMP-010) | 0/10 | 21.3 s |
 
 Two findings, both stable across all 3 runs:
-- **Guardrails work on a local model too**: 0/10 unsafe claims in every run — a clear improvement
-  over the bare-prompt baseline, where *both* providers hit an 8/10 unsupported-claims rate
-  (see `report.md`'s Reply Quality section; Groq itself was never re-run with this hardened prompt,
-  so this is not a claim that Groq's hardened output was measured). The forbidden-phrase instructions
-  and few-shot structure work on Mistral despite being written against Groq's bare-prompt behavior.
+- **The hardened prompt produced 0/10 unsafe-claim violations across all three Mistral runs.** This
+  should not be compared to the baseline Groq result, which used the bare reference prompt and had
+  8/10 unsupported-claim cases (see `report.md`'s Reply Quality section) — Groq was never re-run with
+  this hardened prompt. The 0/10 result demonstrates that the guardrail instructions themselves can
+  work on the local Mistral model, not that Mistral "caught up" to a 0/10 Groq baseline, since no such
+  baseline exists.
 - **A real, repeatable classification gap**: CMP-006 (loan) and CMP-010 (billing) were each missed in
   2 of 3 runs — not noise, but a consistent pattern. Both complaints mention a "stuck," "pending," or
   delayed status; Mistral kept defaulting to `app_issue` for both, apparently over-weighting words like
@@ -59,17 +71,19 @@ the prompt being tested.
 | 1 | **10/10** | 0/10 | 24.5 s |
 | 2 | **10/10** | 0/10 | 19.4 s |
 
-CMP-006 and CMP-010 — the exact two cases that failed across all three baseline runs — are both
+CMP-006 and CMP-010 — the exact two cases that failed across all three hardened-prompt runs — are both
 correctly classified in both tuned runs. This is a documented, explainable fix (a missing
 disambiguation rule, now added), not a cherry-picked result: full raw outputs are in
 `results/ollama_tuned.json` and `..._tuned_run2.json`.
 
 ## What this changes in the main verdict
 
-With the targeted fix, local Mistral matches Groq's 10/10 bare-prompt classification accuracy, and
-its 0/10 guardrail-violation rate improves on *both* providers' 8/10 bare-prompt unsupported-claims
-rate (Groq was not re-run with the hardened prompt, so this is Mistral's own improvement, not a
-Groq-vs-Mistral guardrail comparison). The latency gap (~20–35 s local CPU vs. ~1.1 s cloud) and the
-engineering cost of maintaining a model-specific prompt variant remain the real tradeoffs — not raw
-capability. See the main report's "Which would you ship for a bank, and why?" section for the
+With the targeted prompt fix, local Mistral reached 10/10 classification accuracy and 0/10
+unsupported-claim violations in the follow-up runs. This should be compared with the corresponding
+baseline Groq result carefully: Groq achieved 10/10 classification with the bare prompt, but its
+baseline reply generation still showed 8/10 unsupported-claim cases. The follow-up therefore
+demonstrates the effect of prompt hardening on Mistral rather than showing that Mistral simply
+matched the baseline Groq safety behavior. The latency gap (~20–35 s local CPU vs. ~1.1 s cloud) and
+the engineering cost of maintaining a model-specific prompt variant remain the real tradeoffs — not
+raw capability. See the main report's "Which would you ship for a bank, and why?" section for the
 shipping recommendation in light of this.
