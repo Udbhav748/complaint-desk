@@ -46,7 +46,7 @@ Built with Streamlit for FWC AI/ML Training Module 8 — Activity A & Activity B
 
 This repository's history includes a substantially hardened version of this app (few-shot prompts,
 input validation, category whitelisting, custom UI). **That version has been deliberately reverted.**
-The current `app.py` and `src/` match the handout's §18.1 reference code line-for-line in architecture:
+`app.py` is now a single self-contained file that matches the handout's §18.1 reference code line-for-line:
 
 ```python
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)   # one shared model, flat temperature
@@ -68,16 +68,16 @@ What this means concretely:
 - **Minimal UI.** `st.chat_message("user").write(...)` / `st.chat_message("assistant").write(...)`,
   no custom CSS, no sidebar, no error banners.
 
-One deliberate, disclosed deviation remains: **provider**. The handout's snippet uses
-`ChatOpenAI(model="gpt-4o-mini")`; this deployment runs on **Groq's `openai/gpt-oss-20b`** instead
-(configured via `.env`, zero code changes required to switch back — see [Configuration](#configuration)).
-This is the one point not reverted to the literal snippet.
+`app.py` now hardcodes `ChatOpenAI(model="gpt-4o-mini")` exactly as the handout snippet does — no
+provider-switching logic lives in the app itself anymore. The Groq/OpenAI provider-swap config
+(`src/config.py`, `src/chains.py`) remains in the repo purely as an **evaluation harness** for
+Activity A/B comparisons (see `evaluation/run_eval.py`); it is no longer imported by `app.py`.
 
 The hardened prompts, validation layer, and provider-specific few-shot fixes are preserved as separate,
-documented artifacts used in Activity B's analysis (`src/validation.py` still exists and is unit-tested,
-just no longer called by `app.py`; `evaluation/prompts_mistral_tuned.py` documents what it took to fix
-a local model's accuracy gap). Nothing was deleted — it was deliberately made unused in the production
-app to match the assignment exactly.
+documented artifacts used in Activity B's analysis (`src/validation.py` still exists and is unit-tested;
+`evaluation/prompts_mistral_tuned.py` documents what it took to fix a local model's accuracy gap).
+Nothing was deleted — these modules are simply no longer part of the production app, which now lives
+entirely in `app.py` to match the assignment exactly.
 
 ---
 
@@ -104,35 +104,38 @@ flowchart TD
     D --> E["Render Conversation History<br/>(st.chat_message)"]
 ```
 
-- `app.py`: the entire UI and orchestration — ~25 lines, matching the handout.
-- `src/config.py`: environment configuration (`AppConfig`) — provider, model, single `temperature`.
-- `src/prompts.py`: the two bare prompt templates, verbatim from the handout.
-- `src/chains.py`: builds one shared `llm` and both LCEL chains from it.
-- `src/validation.py`: input/category validation utilities — **present in the codebase, unit-tested,
-  but not called by `app.py`** (removed from the live flow to match the handout exactly).
+- `app.py`: **the complete Activity A implementation** — ~40 lines, single file, no `src/` import.
+  Contains the shared `llm`, both prompt templates, both LCEL chains, and the Streamlit UI, matching
+  the handout's reference code directly.
+- `src/`: not used by `app.py` at runtime. It's kept only as supporting material for the evaluation
+  suite and Activity B: `src/config.py` and `src/chains.py` back the provider-swap benchmark runner
+  (`evaluation/run_eval.py`), and `src/validation.py` is a preserved, unit-tested utility documenting
+  the guardrails the hardened version used (never called by `app.py`).
 
 ---
 
 ## LangChain Implementation
 
 ```python
-# src/chains.py
-llm = get_chat_model(api_key=..., model_name=..., temperature=cfg.temperature, provider=cfg.llm_provider)
-classification_chain = CLASSIFICATION_PROMPT | llm | StrOutputParser()
-reply_chain = REPLY_PROMPT | llm | StrOutputParser()
+# app.py — the whole thing, verbatim from the §18.1 handout
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+
+classify = (
+    ChatPromptTemplate.from_template(
+        "Classify into billing/loan/fraud/app_issue. One word only.\n{text}")
+    | llm | StrOutputParser()
+)
+reply = (
+    ChatPromptTemplate.from_template(
+        "Polite 60-word acknowledgement for a {cat} complaint. Sign as XYZ Finance.\n{text}")
+    | llm | StrOutputParser()
+)
 ```
 
-```python
-# src/prompts.py — verbatim from the §18.1 handout
-CLASSIFICATION_PROMPT = ChatPromptTemplate.from_template(
-    "Classify into billing/loan/fraud/app_issue. One word only.\n{text}"
-)
-REPLY_PROMPT = ChatPromptTemplate.from_template(
-    "Polite 60-word acknowledgement for a {cat} complaint. Sign as XYZ Finance.\n{text}"
-)
-```
-
-For Activity B, the provider line is the only thing that changes: `ChatOpenAI(...)` → `ChatOllama(model="mistral", temperature=0.3)`. See [`evaluation/run_eval_activity_b.py`](evaluation/run_eval_activity_b.py) and [`evaluation/activity_b_report.md`](evaluation/activity_b_report.md).
+For Activity B, only the model swaps: `ChatOpenAI(...)` → `ChatOllama(model="mistral", temperature=0.3)`.
+That comparison is run separately via the `src/`-based evaluation harness, not inside `app.py` — see
+[`evaluation/run_eval_activity_b_tuned.py`](evaluation/run_eval_activity_b_tuned.py) and
+[`evaluation/activity_b_report.md`](evaluation/activity_b_report.md).
 
 ---
 
@@ -173,12 +176,12 @@ complaint-desk/
 ├── README.md                 # Complete project documentation
 ├── requirements.txt          # Pinned dependencies
 ├── Dockerfile                # Container build for deployment
-├── app.py                    # The entire app — matches the §18.1 handout
-├── src/
+├── app.py                    # COMPLETE Activity A implementation — matches the §18.1 handout, no src/ import
+├── src/                       # Not used by app.py; kept for the evaluation harness & Activity B
 │   ├── __init__.py
-│   ├── chains.py              # One shared llm, two LCEL chains
-│   ├── config.py               # AppConfig: provider, model, flat temperature
-│   ├── prompts.py              # The two bare prompt templates, verbatim
+│   ├── chains.py              # Provider-swap chain builder, used by evaluation/run_eval*.py
+│   ├── config.py               # AppConfig: provider, model, flat temperature (evaluation only)
+│   ├── prompts.py              # The two bare prompt templates, verbatim (evaluation only)
 │   └── validation.py           # Input/category validation (unit-tested, not wired into app.py)
 ├── evaluation/
 │   ├── test_complaints.json    # Frozen 10-complaint benchmark (Activity A & B)
@@ -200,26 +203,19 @@ complaint-desk/
 
 ## Configuration
 
-Configuration is managed via [`src/config.py`](src/config.py) using `python-dotenv`. Copy `.env.example` to `.env`:
+`app.py` reads `OPENAI_API_KEY` from the environment via `python-dotenv`. Copy `.env.example` to `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-### Supported Providers
-
 | Variable | Default | Description |
 |---|---|---|
-| `LLM_PROVIDER` | `openai` | `openai` or `groq` |
-| `OPENAI_API_KEY` | *(none)* | OpenAI API secret key |
-| `OPENAI_MODEL_NAME` | `gpt-4o-mini` | Matches the handout's model exactly |
-| `GROQ_API_KEY` | *(none)* | Groq API secret key |
-| `GROQ_MODEL_NAME` | `openai/gpt-oss-20b` | **Currently deployed/tested configuration** |
-| `TEMPERATURE` | `0.3` | Shared by both chains, matching the handout |
+| `OPENAI_API_KEY` | *(none)* | OpenAI API secret key, used by `ChatOpenAI` in `app.py` |
 
-> **Provider disclosure:** the live deployment runs **Groq `openai/gpt-oss-20b`**, not OpenAI
-> `gpt-4o-mini` as shown in the handout's snippet. This is the one deliberate deviation from the
-> literal reference code — switching back requires only `.env` changes, no code changes.
+The other variables in `.env.example` (`LLM_PROVIDER`, `GROQ_API_KEY`, `GROQ_MODEL_NAME`, `TEMPERATURE`)
+are read by `src/config.py` for the **evaluation harness only** (`evaluation/run_eval*.py`), not by
+`app.py` — the app itself hardcodes `ChatOpenAI(model="gpt-4o-mini", temperature=0.3)` per the handout.
 
 ---
 
