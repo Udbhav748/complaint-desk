@@ -26,8 +26,11 @@ drawing any conclusion from a single run:
 | 3 | 8/10 (missed CMP-006, CMP-010) | 0/10 | 21.3 s |
 
 Two findings, both stable across all 3 runs:
-- **Guardrails are portable**: 0/10 unsafe claims in every run, matching Groq's clean output. The
-  forbidden-phrase instructions and few-shot structure work regardless of model.
+- **Guardrails work on a local model too**: 0/10 unsafe claims in every run — a clear improvement
+  over the bare-prompt baseline, where *both* providers hit an 8/10 unsupported-claims rate
+  (see `report.md`'s Reply Quality section; Groq itself was never re-run with this hardened prompt,
+  so this is not a claim that Groq's hardened output was measured). The forbidden-phrase instructions
+  and few-shot structure work on Mistral despite being written against Groq's bare-prompt behavior.
 - **A real, repeatable classification gap**: CMP-006 (loan) and CMP-010 (billing) were each missed in
   2 of 3 runs — not noise, but a consistent pattern. Both complaints mention a "stuck," "pending," or
   delayed status; Mistral kept defaulting to `app_issue` for both, apparently over-weighting words like
@@ -63,7 +66,10 @@ disambiguation rule, now added), not a cherry-picked result: full raw outputs ar
 
 ## What this changes in the main verdict
 
-With the targeted fix, local Mistral matches Groq's 10/10 classification accuracy *and* its 0/10
-guardrail-violation rate. The latency gap (~20–35 s local CPU vs. ~1.1 s cloud) and the engineering cost
-of maintaining a model-specific prompt variant remain the real tradeoffs — not raw capability. See the
-main report's Verdict for the shipping recommendation in light of this.
+With the targeted fix, local Mistral matches Groq's 10/10 bare-prompt classification accuracy, and
+its 0/10 guardrail-violation rate improves on *both* providers' 8/10 bare-prompt unsupported-claims
+rate (Groq was not re-run with the hardened prompt, so this is Mistral's own improvement, not a
+Groq-vs-Mistral guardrail comparison). The latency gap (~20–35 s local CPU vs. ~1.1 s cloud) and the
+engineering cost of maintaining a model-specific prompt variant remain the real tradeoffs — not raw
+capability. See the main report's "Which would you ship for a bank, and why?" section for the
+shipping recommendation in light of this.
