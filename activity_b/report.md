@@ -62,13 +62,52 @@ A separate follow-up experiment tests whether a hardened/tuned prompt closes Oll
 | Groq `openai/gpt-oss-20b` | **≈ $0.02–0.05** (free tier covered this benchmark) |
 | Ollama `mistral` (local) | **≈ $0** marginal (owned compute/electricity instead) |
 
+### Cost Calculation Method
+
+Each complaint requires 2 LLM calls (1 classification + 1 reply generation), so 1,000 complaints
+require 2,000 LLM calls. The benchmark JSON does not record token-usage metadata, so the
+`$0.02–0.05` figure is an **estimate based on representative token usage**, not a measured billing
+amount. Using Groq's documented pricing for `openai/gpt-oss-20b` — input `$0.075 / 1M tokens`,
+output `$0.30 / 1M tokens` — and assuming representative, clearly-labelled token counts:
+
+```
+Estimated cost = (input_tokens / 1,000,000 × input_price) + (output_tokens / 1,000,000 × output_price)
+```
+
+- Classification call: ~150 input tokens (prompt + complaint), ~5 output tokens (one word)
+- Reply call: ~200 input tokens (prompt + complaint), ~120 output tokens (60-word reply)
+- Per complaint: (350 input + 125 output) tokens
+- Per 1,000 complaints (2,000 calls): 350,000 input tokens + 125,000 output tokens
+
+```
+(350,000 / 1,000,000 × $0.075) + (125,000 / 1,000,000 × $0.30)
+= $0.02625 + $0.0375
+= ≈ $0.064
+```
+
+This lands close to, if a little above, the quoted `$0.02–0.05` range depending on actual reply
+length and prompt overhead — both are estimates, not invoices. This is an estimated inference
+cost, not an observed invoice amount; the benchmark itself was completed under the applicable
+Groq free-tier usage.
+
+For Ollama, `≈ $0` marginal cost excludes the user's existing hardware purchase/depreciation and
+electricity costs — it reflects only the marginal cost of an additional inference call on
+already-owned hardware.
+
 ## Data Privacy
 
 | | Groq | Ollama |
 |---|---|---|
 | Where inference runs | Third-party cloud | Local machine |
 | Complaint data leaves infrastructure? | Yes | No |
-| Needs a data-processing agreement? | Yes | No |
+| Data-processing / contractual terms | Third-party cloud provider terms and applicable DPA | No third-party model-inference provider involved |
+
+Groq inference occurs through a third-party cloud service, so complaint data leaves the
+application's local infrastructure. Ollama runs inference locally, so complaint data can remain
+within the organization's infrastructure. Whether a bank must execute a particular DPA or satisfy
+additional contractual/regulatory requirements depends on the organization's legal/compliance
+setup and provider agreement — this is not legal advice, and neither a DPA nor its absence is
+universally mandatory.
 
 ## Summary Table
 
