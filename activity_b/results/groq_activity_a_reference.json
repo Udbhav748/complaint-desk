@@ -1,7 +1,7 @@
 {
   "evaluation": {
-    "name": "FWC Module 8 Activity A - Complaint Desk",
-    "dataset": "evaluation/test_complaints.json",
+    "name": "FWC Module 8 Activity A Reference Run - Groq",
+    "dataset": "activity_b/test_complaints.json",
     "cases": 10,
     "executed_at": "2026-10-06T19:12:54Z",
     "provider": "groq",
