@@ -16,16 +16,28 @@ The cloud data point below is Groq's `openai/gpt-oss-20b` (same 10 complaints, s
 deployment model Activity A actually runs — see `results/groq_activity_a_reference.md`). Local run:
 `mistral:latest` (4.4GB) via Ollama, CPU only. No OpenAI numbers are reported anywhere in this repo.
 
-## Reply Quality
+## Baseline Comparison — Bare Reference Prompt
 
-The bare reference prompt produced unsafe output — fabricated refunds, fake investigations, false
-routing claims (e.g. *"we will refund the excess amount of $45.00"*, *"we have initiated an
-investigation"*) — a prompt-engineering failure, not a model-specific one. Classification accuracy:
+The number below is the baseline: **both providers run the identical, unmodified §18.1 prompts**
+(`"Classify into billing/loan/fraud/app_issue. One word only.\n{text}"` and `"Polite 60-word
+acknowledgement for a {cat} complaint. Sign as XYZ Finance.\n{text}"`), `temperature=0.3`, same 10
+complaints. Only the `llm` line differs (Groq vs. Ollama). No hardening, no few-shot examples, no
+guardrails on either side.
 
-| Provider / Model | Correct | Notes |
+| Provider / Model | Prompt | Correct |
 |---|---|---|
-| Groq `openai/gpt-oss-20b` | 10/10 | Hardened prompt |
-| Ollama `mistral` (local) | 8/10 → **10/10** | Bare prompt scored 8/10; hardened prompt also 8/10 (repeatable miss, see follow-up); a targeted fix for that specific gap reached 10/10 |
+| Groq `openai/gpt-oss-20b` | Bare reference prompt | 10/10 |
+| Ollama `mistral` (local) | Bare reference prompt | 8/10 |
+
+The bare reference prompt also produced unsafe reply output on both providers — fabricated refunds,
+fake investigations, false routing claims (e.g. *"we will refund the excess amount of $45.00"*, *"we
+have initiated an investigation"*) — a prompt-engineering failure of the §18.1 reference prompt
+itself, not something specific to either model.
+
+**This 10/10 vs. 8/10 result is the baseline Groq-vs-Ollama comparison.** It is not the final word on
+Mistral's capability — see the follow-up experiment below, which is a separate, later test that
+swaps in a hardened/tuned prompt on Ollama only (Groq's side of that follow-up is unchanged, still
+running the bare prompt).
 
 ## Latency
 
@@ -61,18 +73,34 @@ Groq's inference hardware makes cloud ~25× faster than unaccelerated local CPU 
 - **Ollama**: complaint text never leaves the machine. No third-party logging, no DPA, no
   cross-border transfer question — the stronger posture for regulated financial data.
 
-> **Follow-up**: does hardening the prompt fix Mistral's unsafe-output problem? Yes — guardrail
-> violations drop to 0/10 across 3 runs. Classification stayed at 8/10 (same 2 misses, repeatably),
-> but a targeted prompt fix for that specific gap brought it to 10/10, confirmed over 2 runs. Full
-> story, root cause, and the fix itself: [`followup.md`](followup.md).
+## Follow-up Experiment — Hardened/Tuned Prompt on Ollama Only
+
+This is a separate experiment, run *after* the baseline above, to answer a different question: does
+better prompting fix Mistral's unsafe output and its 2-case classification miss? It reruns **Ollama
+only** with a hardened prompt, then a further-tuned prompt — it is not a re-run of Groq and must not
+be read as part of the baseline comparison.
+
+| Run | Provider | Prompt | Classification | Guardrail violations |
+|---|---|---|---|---|
+| Baseline (above) | Groq | Bare reference | 10/10 | — |
+| Baseline (above) | Ollama | Bare reference | 8/10 | present |
+| Follow-up | Ollama | Hardened | 8/10 (same 2 misses, 3 runs) | 0/10 |
+| Follow-up | Ollama | Tuned (hardened + targeted fix) | **10/10** (2 runs) | 0/10 |
+
+Guardrail violations drop to 0/10 as soon as the hardened prompt is applied; the classification gap
+needed a further targeted fix on top of that to reach 10/10. Full story, root cause, and the fix
+itself: [`followup.md`](followup.md).
 
 ## Which would you ship for a bank, and why?
 
-Ship Groq's cloud API today — with a correctly tuned prompt both providers reach 10/10 accuracy and
-0/10 unsafe claims, so the deciding factor is latency, not quality: ~1.1 s cloud vs. ~20–35 s local
-CPU is unacceptable for a live chat interface. Always ship the hardened, guardrailed prompt
-regardless of provider, since the bare reference prompt is unsafe on either one. Reserve a local
-model like Mistral for an internal, latency-tolerant, privacy-sensitive workflow where data
-residency outweighs the latency cost and the overhead of maintaining a model-specific prompt
-variant. This verdict is explicitly **Groq vs. Ollama** — OpenAI was never run, so it is not part of
-this recommendation.
+On the baseline bare-prompt comparison, Groq already classifies 10/10 vs. Ollama's 8/10, and Groq is
+~25× faster (~1.1 s vs. ~20–35 s local CPU) — unacceptable latency for a live chat interface either
+way for Ollama. Ship Groq's cloud API today. Separately, the bare reference prompt is unsafe on
+**both** providers (fabricated refunds/investigations), so ship the hardened, guardrailed prompt
+regardless of provider — the follow-up experiment shows it also closes Ollama's remaining accuracy
+gap, so prompt hardening, not model choice, is what fixes correctness here. Latency, not quality, is
+still the deciding factor against shipping a local model for a live interface. Reserve a local model
+like Mistral for an internal, latency-tolerant, privacy-sensitive workflow where data residency
+outweighs the latency cost and the overhead of maintaining a model-specific prompt variant. This
+verdict is explicitly **Groq vs. Ollama** — OpenAI was never run, so it is not part of this
+recommendation.

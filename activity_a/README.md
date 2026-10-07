@@ -27,6 +27,20 @@ No input validation, no category whitelisting, no guardrails, no RAG/agents/Lang
 intentionally bare, matching the assignment reference. The entire implementation is
 visible by opening [`app.py`](app.py).
 
+## Why temperature=0.3
+
+`temperature=0.3` is kept low and shared by both chains:
+
+- **Classification chain**: a low temperature keeps the model's category output stable and
+  repeatable across the fixed label set (`billing`, `loan`, `fraud`, `app_issue`) — the task is a
+  deterministic-ish lookup, not creative generation, so unnecessary randomness only risks
+  inconsistent labels for near-identical complaints.
+- **Reply chain**: `0.3` is non-zero, not `0.0`, so the acknowledgement wording varies naturally
+  between replies instead of being word-for-word identical every time, while still staying close to
+  the intended tone.
+- The same value is shared by both chains (no separate classification/reply temperatures) to match
+  the assignment reference exactly.
+
 ## Provider note
 
 > The teacher's reference uses `ChatOpenAI(model="gpt-4o-mini")`. This implementation

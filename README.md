@@ -50,6 +50,11 @@ guardrails, no RAG/agents/LangGraph. The complete implementation is one file:
 
 **Live demo:** http://65.1.106.51:8501
 
+**`temperature=0.3`** is shared by both chains: low enough to keep classification consistent across
+the fixed `billing`/`loan`/`fraud`/`app_issue` label set, but non-zero so the reply chain still
+produces natural, non-identical acknowledgements. Full reasoning in
+[`activity_a/README.md`](activity_a/README.md#why-temperature03).
+
 ## Activity B
 
 Groq (`openai/gpt-oss-20b`) vs. local Ollama/Mistral, same 10 complaints, same prompts, same
