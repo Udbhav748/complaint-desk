@@ -19,7 +19,10 @@ llm = ChatOllama(model="mistral", temperature=0.3)                              
 
 ## Reply Quality
 
-Baseline only — both providers on the identical bare §18.1 reply prompt, same 10 complaints:
+Baseline only — both providers on the identical bare §18.1 reply prompt, same 10 complaints. Reply
+relevance, professionalism, category appropriateness, and unsupported-claim behavior were assessed
+through manual qualitative review of the 10 generated replies in each provider's raw results file;
+classification accuracy and latency (below) were measured directly by the benchmark script.
 
 | Reply Quality Dimension | Groq | Ollama / Mistral |
 |---|---|---|
@@ -49,7 +52,7 @@ A separate follow-up experiment tests whether a hardened/tuned prompt closes Oll
 
 | Provider / Model | Avg. total latency |
 |---|---|
-| Groq `openai/gpt-oss-20b` | **1,092 ms** |
+| Groq `openai/gpt-oss-20b` | **~955 ms** |
 | Ollama `mistral` (local, CPU) | **26,969 ms** (~27 s) |
 
 ## Cost per 1,000 Requests (2 calls/complaint)
@@ -73,14 +76,15 @@ A separate follow-up experiment tests whether a hardened/tuned prompt closes Oll
 |---|---|---|
 | Classification | 10/10 | 8/10 baseline |
 | Reply quality | Unsafe (bare prompt) | Unsafe (bare prompt) |
-| Avg latency | 1,092 ms | 26,969 ms |
+| Avg latency | ~955 ms | 26,969 ms |
 | Cost / 1,000 | ≈ $0.02–0.05 | ≈ $0 marginal |
 | Privacy | Cloud | Local |
 
 ## Which would you ship for a bank, and why?
 
 I would ship Groq for this application because it achieved stronger baseline classification accuracy
-and dramatically lower latency than local Ollama/Mistral in our test. Although Ollama provides
-stronger data privacy by keeping complaint data local, its CPU latency is much higher and makes it
-less suitable for an interactive customer-facing workflow. I would choose Ollama for
-privacy-sensitive internal workloads where data residency is more important than response speed.
+and dramatically lower latency (~955 ms, compared to ~26,969 ms) than local Ollama/Mistral in our test.
+Although Ollama provides stronger data privacy by keeping complaint data local, its CPU latency is
+much higher and makes it less suitable for an interactive customer-facing workflow. I would choose
+Ollama for privacy-sensitive internal workloads where data residency is more important than response
+speed.
