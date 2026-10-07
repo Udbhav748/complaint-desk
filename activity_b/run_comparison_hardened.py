@@ -11,10 +11,10 @@ with the Chain 2 guardrails strengthened after the EC2 deployment review) to see
 whether the guardrails fix those issues on a local model too.
 
 Usage:
-    python evaluation/run_eval_activity_b_hardened.py [run_index]
+    python run_comparison_hardened.py [run_index]
 
     run_index (optional): appended to the output filename so repeated runs
-    don't overwrite each other, e.g. `... 1` -> activity_b_results_ollama_hardened_run1.json
+    don't overwrite each other, e.g. `... 1` -> results/ollama_hardened_run1.json
 """
 
 import json
@@ -23,23 +23,25 @@ import sys
 import time
 import platform
 import importlib.metadata
+from pathlib import Path
 from dotenv import load_dotenv
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-load_dotenv(".env")
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+load_dotenv(HERE.parent / ".env")
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_ollama import ChatOllama
 
-from evaluation.prompts_hardened_activity_a import CLASSIFICATION_PROMPT, REPLY_PROMPT
-from src.validation import validate_category
+from prompts_hardened import CLASSIFICATION_PROMPT, REPLY_PROMPT
+from validation import validate_category
 
-DATASET_PATH = "evaluation/test_complaints.json"
+DATASET_PATH = HERE / "test_complaints.json"
 RUN_INDEX = sys.argv[1] if len(sys.argv) > 1 else None
 RESULTS_PATH = (
-    f"evaluation/activity_b_results_ollama_hardened_run{RUN_INDEX}.json"
+    HERE / "results" / f"ollama_hardened_run{RUN_INDEX}.json"
     if RUN_INDEX
-    else "evaluation/activity_b_results_ollama_hardened.json"
+    else HERE / "results" / "ollama_hardened.json"
 )
 
 FORBIDDEN_PHRASES = [

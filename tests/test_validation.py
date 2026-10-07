@@ -1,11 +1,12 @@
 """Deterministic unit tests for input and category validation.
 
 Covers all 24 required validation boundaries without invoking external LLM APIs.
-FWC AI/ML Training Module 8 Activity A.
+FWC AI/ML Training Module 8 Activity B (validation utility preserved from the
+pre-revert hardened Activity A, now used only by Activity B's follow-up scripts).
 """
 
 import pytest
-from src.validation import (
+from activity_b.validation import (
     validate_complaint,
     validate_category,
     normalize_category,

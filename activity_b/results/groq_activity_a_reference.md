@@ -1,8 +1,8 @@
 # Activity A — Empirical Evaluation
 
-Evaluated against the **current, exact-spec `app.py`/`src/`** — the literal FWC Module 8 §18.1
-reference code (bare 2-line prompts, one shared `llm`, flat `temperature=0.3`, no input validation,
-no category whitelist). Run via `evaluation/run_eval.py` against the live Groq API.
+Evaluated against **Activity A's `app.py`** — the literal FWC Module 8 §18.1 reference code (bare
+2-line prompts, one shared `llm`, flat `temperature=0.3`, no input validation, no category
+whitelist), run against the live Groq API.
 
 ## Evaluation Setup
 
@@ -11,7 +11,7 @@ no category whitelist). Run via `evaluation/run_eval.py` against the live Groq A
 | Provider | Groq |
 | Model | `openai/gpt-oss-20b` |
 | Temperature | 0.3 (shared, both chains) |
-| Dataset | `evaluation/test_complaints.json` (10 complaints) |
+| Dataset | `test_complaints.json` (10 complaints) |
 | Executed | 2026-10-06 |
 
 ## Aggregate Results
@@ -24,7 +24,7 @@ no category whitelist). Run via `evaluation/run_eval.py` against the live Groq A
 | Average total latency | **~955 ms** |
 | Replies containing unsupported claims (refund/investigation/"secure your account"/etc.) | **8/10** |
 
-Full raw per-case data (classification output, reply text, latency): `evaluation/activity_a_results.json`.
+Full raw per-case data (classification output, reply text, latency): `results/groq_activity_a_reference.json`.
 
 ## Per-Case Classification
 
@@ -43,7 +43,7 @@ Full raw per-case data (classification output, reply text, latency): `evaluation
 
 Groq's `openai/gpt-oss-20b` classified all 10 cases correctly even with the bare, example-free
 prompt — a stronger result than local `mistral` managed on the same bare prompt in the Activity B
-comparison (8/10, see `evaluation/activity_b_report.md`).
+comparison (8/10, see `report.md`).
 
 ## Reply Quality — Unsupported Claims
 

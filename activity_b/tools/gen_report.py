@@ -1,8 +1,8 @@
 import json
 import os
 
-RESULTS_PATH = "evaluation/activity_a_results.json"
-REPORT_PATH = "evaluation/activity_a_report.md"
+RESULTS_PATH = "../results/groq_activity_a_reference.json"
+REPORT_PATH = "../results/groq_activity_a_reference.md"
 
 with open(RESULTS_PATH, "r", encoding="utf-8") as f:
     data = json.load(f)
@@ -72,7 +72,7 @@ LangChain: {data['evaluation']['langchain_version']}
 ## 2. Frozen Evaluation Set
 
 10 cases from:
-evaluation/test_complaints.json
+../test_complaints.json
 
 ## 3. Case-by-Case Results
 

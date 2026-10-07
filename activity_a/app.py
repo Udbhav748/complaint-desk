@@ -1,10 +1,18 @@
-"""Complaint Desk — Streamlit app.
+"""Complaint Desk — Activity A.
 
-Matches FWC Module 8 §18.1 Activity A reference code exactly: paste a
-complaint, classify it, draft a category-appropriate reply, persist the
-conversation on screen. No input validation, no category whitelisting, no
-custom styling — the literal two-chain demo from the handout, in one file.
+FWC Module 8 §18.1 reference app: paste a complaint, classify it, draft a
+category-appropriate reply, persist the conversation on screen. No input
+validation, no category whitelisting, no custom styling — the literal
+two-chain demo from the handout, in one file.
+
+Provider note: the handout's snippet uses ChatOpenAI(model="gpt-4o-mini").
+This deployment has no OpenAI API key/credits available, so it uses Groq's
+OpenAI-compatible endpoint (same `ChatOpenAI` class, different base_url)
+instead. Architecture, prompts, and temperature are otherwise identical to
+the reference.
 """
+
+import os
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -14,7 +22,12 @@ from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+llm = ChatOpenAI(
+    model="openai/gpt-oss-20b",
+    temperature=0.3,
+    base_url="https://api.groq.com/openai/v1",
+    api_key=os.getenv("GROQ_API_KEY"),
+)
 
 classify = (
     ChatPromptTemplate.from_template(

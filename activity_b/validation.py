@@ -6,8 +6,10 @@ whitelisting for LLM classification output before invoking downstream chains.
 
 from dataclasses import dataclass
 import re
-from typing import Optional
-from src.config import ALLOWED_CATEGORIES
+from typing import Optional, Tuple
+
+# Canonical complaint categories required by FWC Module 8
+ALLOWED_CATEGORIES: Tuple[str, ...] = ("billing", "loan", "fraud", "app_issue")
 
 # Length boundaries for complaint intake
 MIN_COMPLAINT_LENGTH: int = 5

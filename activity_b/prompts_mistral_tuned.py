@@ -10,12 +10,12 @@ misclassified two patterns as `app_issue` when they shouldn't be:
 Mistral appears to over-weight words like "portal", "stuck", "status" toward
 app_issue regardless of the underlying financial context. This variant adds a
 second disambiguation rule and two targeted few-shot examples to correct that,
-without touching the production prompt in src/prompts.py (which already gets
+without touching Activity A's own prompt (which already gets
 Groq to 10/10 and should not be modified for one smaller model's quirk).
 """
 
 from langchain_core.prompts import ChatPromptTemplate
-from evaluation.prompts_hardened_activity_a import REPLY_PROMPT  # unchanged — reply guardrails are provider-agnostic
+from prompts_hardened import REPLY_PROMPT  # unchanged — reply guardrails are provider-agnostic
 
 CLASSIFICATION_SYSTEM_PROMPT_TUNED = """You are an automated customer complaint intake classification engine.
 Your sole responsibility is to evaluate an incoming customer complaint and classify it into exactly ONE of the four valid categories listed below:

@@ -3,12 +3,12 @@
 Across 3 runs of the hardened Activity A prompt, local `mistral` consistently missed
 CMP-006 (loan) and/or CMP-010 (billing), both misclassified as app_issue. Rather than
 rerunning until a lucky seed gives 10/10 (which would misrepresent the model), this
-script applies a *targeted, documented* prompt fix (evaluation/prompts_mistral_tuned.py)
+script applies a *targeted, documented* prompt fix (prompts_mistral_tuned.py)
 that adds a second disambiguation rule + two few-shot examples for exactly this
 confusion, then reruns once to see whether an actual fix — not luck — resolves it.
 
 Usage:
-    python evaluation/run_eval_activity_b_tuned.py
+    python run_comparison_tuned.py
 """
 
 import json
@@ -17,24 +17,26 @@ import sys
 import time
 import platform
 import importlib.metadata
+from pathlib import Path
 from dotenv import load_dotenv
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-load_dotenv(".env")
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+load_dotenv(HERE.parent / ".env")
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_ollama import ChatOllama
 
-from evaluation.prompts_mistral_tuned import CLASSIFICATION_PROMPT_TUNED
-from evaluation.prompts_hardened_activity_a import REPLY_PROMPT
-from src.validation import validate_category
+from prompts_mistral_tuned import CLASSIFICATION_PROMPT_TUNED
+from prompts_hardened import REPLY_PROMPT
+from validation import validate_category
 
-DATASET_PATH = "evaluation/test_complaints.json"
+DATASET_PATH = HERE / "test_complaints.json"
 RUN_INDEX = sys.argv[1] if len(sys.argv) > 1 else None
 RESULTS_PATH = (
-    f"evaluation/activity_b_results_ollama_tuned_run{RUN_INDEX}.json"
+    HERE / "results" / f"ollama_tuned_run{RUN_INDEX}.json"
     if RUN_INDEX
-    else "evaluation/activity_b_results_ollama_tuned.json"
+    else HERE / "results" / "ollama_tuned.json"
 )
 
 FORBIDDEN_PHRASES = [

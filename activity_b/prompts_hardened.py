@@ -1,9 +1,9 @@
 """Preserved hardened prompt templates — used by Activity B's follow-up scripts.
 
-This was the production prompt in src/prompts.py until Activity A was reverted
-to match the FWC Module 8 §18.1 reference code exactly (bare 2-line prompts,
-no guardrails). Moved here, unchanged, because evaluation/run_eval_activity_b_hardened.py
-and evaluation/prompts_mistral_tuned.py specifically test what happens when a
+This was the production prompt in Activity A's app until it was reverted to
+match the FWC Module 8 §18.1 reference code exactly (bare 2-line prompts,
+no guardrails). Preserved here, unchanged, because run_comparison_hardened.py
+and prompts_mistral_tuned.py specifically test what happens when a
 local model (Mistral) is given THIS hardened prompt instead of the bare one —
 that comparison requires the actual hardened prompt to still exist somewhere.
 """
