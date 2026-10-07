@@ -19,9 +19,21 @@ llm = ChatOllama(model="mistral", temperature=0.3)                              
 
 ## Reply Quality
 
-The bare reference prompt produced unsafe output on **both** providers — fabricated refunds, fake
-investigations, false routing claims (e.g. *"we will refund the excess amount of $45.00"*) — a
-prompt-engineering failure of the §18.1 reference prompt itself, not a model-specific one.
+Baseline only — both providers on the identical bare §18.1 reply prompt, same 10 complaints:
+
+| Reply Quality Dimension | Groq | Ollama / Mistral |
+|---|---|---|
+| Relevance | All 10 replies address specifics of the submitted complaint (e.g. the duplicate charge, the OTP/fraud alert, the app crash) | All 10 replies address specifics of the submitted complaint, including the 2 cases it misclassified — e.g. CMP-002's reply still discusses the loan/EMI issue even though the category label was wrong |
+| Professional tone | Polite, consistent "Dear Valued Customer... Best Regards, XYZ Finance" structure across all 10 | Polite, consistent "Dear Valued Customer... Best Regards, XYZ Finance Team" structure across all 10 |
+| Category appropriateness | Reply content matches the predicted category in all 10 cases; the literal category word appears in 2/10 replies (CMP-003, CMP-007) | Reply content generally matches the predicted category label (not always the *expected* one, since 2/10 were misclassified); the literal category word appears in 2/10 replies (CMP-001, CMP-005) |
+| Unsupported claims | 8/10 replies contain at least one unsupported operational claim (refund, "investigating", "secure your account") | 8/10 replies contain at least one unsupported operational claim (refund, "investigating", "rectify", "secure your account", "immediate steps") |
+| Overall | Relevant, professional, but the bare prompt lets it over-promise in 8/10 replies | Relevant, professional, but the bare prompt lets it over-promise in 8/10 replies — same failure rate as Groq |
+
+Both providers generate relevant, professionally worded acknowledgements on this baseline — the
+measured difference is in classification (see below), not reply tone. The bare reference prompt
+itself allows unsupported operational claims on **both** providers at an identical 8/10 rate, so this
+is a weakness of the §18.1 prompt, not something to silently fix here. The hardened/tuned prompt work
+that addresses it lives only in [`followup.md`](followup.md), scoped to Ollama.
 
 ## Classification Accuracy
 
