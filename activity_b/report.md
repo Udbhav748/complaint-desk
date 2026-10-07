@@ -1,42 +1,31 @@
 # Activity B — Groq ↔ Ollama/Mistral Comparison
 
-FWC Module 8 §18.2. The assignment reference uses `ChatOpenAI(model="gpt-4o-mini")`, but no OpenAI
-API key/credits were available for this project — a live OpenAI attempt failed on all 10 calls with
-`HTTP 429 — "You have no credits remaining"` (`results/openai_attempt_failed.json`). **This
-comparison is Groq vs. Ollama, not OpenAI vs. Ollama** — no OpenAI numbers are reported anywhere.
+FWC Module 8 §18.2. The teacher's reference uses `ChatOpenAI(model="gpt-4o-mini")`, but no OpenAI
+API key/credits were available — a live OpenAI attempt failed on all 10 calls with `HTTP 429 — "You
+have no credits remaining"` (`results/openai_attempt_failed.json`). **This comparison is Groq vs.
+Ollama, not OpenAI vs. Ollama** — no OpenAI numbers are reported anywhere.
 
 ## Experimental Setup
 
-Same 10 frozen complaints (`test_complaints.json`), same bare §18.1 reference prompts on both
-providers, `temperature=0.3`, same two-chain workflow. Only the `llm` line changes:
-
-```python
-llm = ChatOpenAI(model="openai/gpt-oss-20b", base_url="https://api.groq.com/openai/v1", temperature=0.3)   # cloud
-llm = ChatOllama(model="mistral", temperature=0.3)                                                          # local
-```
-
-(`mistral:latest`, 4.4GB, via Ollama, CPU only.)
+Same 10 frozen complaints, same bare §18.1 prompts, `temperature=0.3`, same two-chain workflow on
+both providers — only the `llm` line changes (Groq `openai/gpt-oss-20b` vs. local Ollama
+`mistral`, CPU only).
 
 ## Reply Quality
 
-Baseline only — both providers on the identical bare §18.1 reply prompt, same 10 complaints. Reply
-relevance, professionalism, category appropriateness, and unsupported-claim behavior were assessed
-through manual qualitative review of the 10 generated replies in each provider's raw results file;
-classification accuracy and latency (below) were measured directly by the benchmark script.
+Manual qualitative review of the 10 raw replies per provider (classification/latency below are
+measured directly by the benchmark script):
 
-| Reply Quality Dimension | Groq | Ollama / Mistral |
+| Dimension | Groq | Ollama / Mistral |
 |---|---|---|
-| Relevance | All 10 replies address specifics of the submitted complaint (e.g. the duplicate charge, the OTP/fraud alert, the app crash) | All 10 replies address specifics of the submitted complaint, including the 2 cases it misclassified — e.g. CMP-002's reply still discusses the loan/EMI issue even though the category label was wrong |
-| Professional tone | Polite, consistent "Dear Valued Customer... Best Regards, XYZ Finance" structure across all 10 | Polite, consistent "Dear Valued Customer... Best Regards, XYZ Finance Team" structure across all 10 |
-| Category appropriateness | Reply content matches the predicted category in all 10 cases; the literal category word appears in 2/10 replies (CMP-003, CMP-007) | Reply content generally matches the predicted category label (not always the *expected* one, since 2/10 were misclassified); the literal category word appears in 2/10 replies (CMP-001, CMP-005) |
-| Unsupported claims | 8/10 replies contain at least one unsupported operational claim (refund, "investigating", "secure your account") | 8/10 replies contain at least one unsupported operational claim (refund, "investigating", "rectify", "secure your account", "immediate steps") |
-| Overall | Relevant, professional, but the bare prompt lets it over-promise in 8/10 replies | Relevant, professional, but the bare prompt lets it over-promise in 8/10 replies — same failure rate as Groq |
+| Relevance | All 10 replies address complaint specifics | All 10 replies address complaint specifics, even the 2 misclassified |
+| Professional tone | Consistent, polite "Dear Valued Customer...Best Regards" structure | Same, consistent across all 10 |
+| Category appropriateness | Matches predicted category in all 10 | Matches predicted (not always *expected*) category label |
+| Unsupported claims | **8/10** replies contain an unsupported operational claim (refund, "investigating", etc.) | **8/10** replies contain an unsupported operational claim — identical rate |
 
-Both providers generate relevant, professionally worded acknowledgements on this baseline — the
-measured difference is in classification (see below), not reply tone. The bare reference prompt
-itself allows unsupported operational claims on **both** providers at an identical 8/10 rate, so this
-is a weakness of the §18.1 prompt, not something to silently fix here. The hardened/tuned prompt work
-that addresses it lives only in [`followup.md`](followup.md), scoped to Ollama.
+Both providers are relevant and professional; the bare §18.1 prompt allows unsupported claims at an
+identical 8/10 rate on both, so this is a prompt weakness, not a provider difference. Hardened/tuned
+prompt work that addresses it is a separate Ollama-only experiment — see [`followup.md`](followup.md).
 
 ## Classification Accuracy
 
@@ -45,54 +34,34 @@ that addresses it lives only in [`followup.md`](followup.md), scoped to Ollama.
 | Groq `openai/gpt-oss-20b` | 10/10 |
 | Ollama `mistral` (local) | 8/10 |
 
-A separate follow-up experiment tests whether a hardened/tuned prompt closes Ollama's gap — see
-[`followup.md`](followup.md).
+(A follow-up experiment tests whether a hardened/tuned prompt closes Ollama's gap — see
+[`followup.md`](followup.md); those results are not part of this baseline.)
 
 ## Latency
 
 | Provider / Model | Avg. total latency |
 |---|---|
 | Groq `openai/gpt-oss-20b` | **~955 ms** |
-| Ollama `mistral` (local, CPU) | **26,969 ms** (~27 s) |
+| Ollama `mistral` (local, CPU) | **~26,969 ms** (~27 s) |
 
-## Cost per 1,000 Requests (2 calls/complaint)
+## Cost per 1,000 Requests (2 calls/complaint, 2,000 LLM calls)
 
 | Provider / Model | Est. cost / 1,000 complaints |
 |---|---|
-| Groq `openai/gpt-oss-20b` | **≈ $0.02–0.05** (free tier covered this benchmark) |
-| Ollama `mistral` (local) | **≈ $0** marginal (owned compute/electricity instead) |
+| Groq `openai/gpt-oss-20b` | **≈ $0.06** (estimated) |
+| Ollama `mistral` (local) | **≈ $0** marginal |
 
-### Cost Calculation Method
-
-Each complaint requires 2 LLM calls (1 classification + 1 reply generation), so 1,000 complaints
-require 2,000 LLM calls. The benchmark JSON does not record token-usage metadata, so the
-`$0.02–0.05` figure is an **estimate based on representative token usage**, not a measured billing
-amount. Using Groq's documented pricing for `openai/gpt-oss-20b` — input `$0.075 / 1M tokens`,
-output `$0.30 / 1M tokens` — and assuming representative, clearly-labelled token counts:
+No token-usage metadata is recorded in the benchmark JSON, so this is an **estimated inference
+cost**, not an observed invoice — the benchmark itself ran under Groq's free tier. Using Groq's
+documented pricing (`openai/gpt-oss-20b`: input $0.075/1M tokens, output $0.30/1M tokens) and
+representative per-call token assumptions (~350 input + ~125 output tokens/complaint → 350,000
+input + 125,000 output tokens per 1,000 complaints):
 
 ```
-Estimated cost = (input_tokens / 1,000,000 × input_price) + (output_tokens / 1,000,000 × output_price)
+(350,000/1,000,000 × $0.075) + (125,000/1,000,000 × $0.30) = $0.026 + $0.038 ≈ $0.06
 ```
 
-- Classification call: ~150 input tokens (prompt + complaint), ~5 output tokens (one word)
-- Reply call: ~200 input tokens (prompt + complaint), ~120 output tokens (60-word reply)
-- Per complaint: (350 input + 125 output) tokens
-- Per 1,000 complaints (2,000 calls): 350,000 input tokens + 125,000 output tokens
-
-```
-(350,000 / 1,000,000 × $0.075) + (125,000 / 1,000,000 × $0.30)
-= $0.02625 + $0.0375
-= ≈ $0.064
-```
-
-This lands close to, if a little above, the quoted `$0.02–0.05` range depending on actual reply
-length and prompt overhead — both are estimates, not invoices. This is an estimated inference
-cost, not an observed invoice amount; the benchmark itself was completed under the applicable
-Groq free-tier usage.
-
-For Ollama, `≈ $0` marginal cost excludes the user's existing hardware purchase/depreciation and
-electricity costs — it reflects only the marginal cost of an additional inference call on
-already-owned hardware.
+Ollama's `≈ $0` marginal cost excludes the existing hardware purchase/depreciation and electricity.
 
 ## Data Privacy
 
@@ -100,23 +69,19 @@ already-owned hardware.
 |---|---|---|
 | Where inference runs | Third-party cloud | Local machine |
 | Complaint data leaves infrastructure? | Yes | No |
-| Data-processing / contractual terms | Third-party cloud provider terms and applicable DPA | No third-party model-inference provider involved |
+| Contractual/DPA terms | Third-party cloud provider terms and applicable DPA | No third-party model-inference provider involved |
 
-Groq inference occurs through a third-party cloud service, so complaint data leaves the
-application's local infrastructure. Ollama runs inference locally, so complaint data can remain
-within the organization's infrastructure. Whether a bank must execute a particular DPA or satisfy
-additional contractual/regulatory requirements depends on the organization's legal/compliance
-setup and provider agreement — this is not legal advice, and neither a DPA nor its absence is
-universally mandatory.
+Whether a bank must execute a particular DPA or meet other contractual/regulatory requirements
+depends on its own legal/compliance setup — not a universal rule either way.
 
 ## Summary Table
 
 | Metric | Groq | Ollama/Mistral |
 |---|---|---|
-| Classification | 10/10 | 8/10 baseline |
-| Reply quality | Unsafe (bare prompt) | Unsafe (bare prompt) |
-| Avg latency | ~955 ms | 26,969 ms |
-| Cost / 1,000 | ≈ $0.02–0.05 | ≈ $0 marginal |
+| Classification | 10/10 | 8/10 |
+| Reply quality | Unsafe (bare prompt), 8/10 unsupported claims | Unsafe (bare prompt), 8/10 unsupported claims |
+| Avg latency | ~955 ms | ~26,969 ms |
+| Cost / 1,000 | ≈ $0.06 (estimated) | ≈ $0 marginal |
 | Privacy | Cloud | Local |
 
 ## Which would you ship for a bank, and why?
